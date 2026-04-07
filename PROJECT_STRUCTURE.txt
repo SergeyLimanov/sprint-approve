@@ -1,0 +1,314 @@
+Sprint Approve - Полная структура проекта
+==========================================
+
+sprint-approve/
+│
+├── 📄 Документация
+│   ├── README.md                    # Основная документация проекта
+│   ├── QUICKSTART.md                # Руководство по быстрому старту
+│   ├── ARCHITECTURE.md              # Описание архитектуры системы
+│   ├── DEVELOPMENT.md               # Руководство для разработчиков
+│   ├── USAGE_EXAMPLES.md            # Примеры использования API
+│   ├── CHANGELOG.md                 # История изменений
+│   ├── PROJECT_SUMMARY.md           # Краткая сводка проекта
+│   ├── PROJECT_STRUCTURE.txt        # Этот файл
+│   └── LICENSE                      # MIT лицензия
+│
+├── 🔧 Конфигурация
+│   ├── pom.xml                      # Родительский Maven POM
+│   ├── docker-compose.yml           # Docker конфигурация для БД
+│   ├── .env.example                 # Пример переменных окружения
+│   ├── .gitignore                   # Git ignore файл
+│   └── .github/
+│       └── workflows/
+│           └── maven.yml            # GitHub Actions CI/CD
+│
+├── 🛠️ Утилиты
+│   ├── start-all.bat                # Скрипт запуска всех сервисов (Windows)
+│   ├── stop-all.bat                 # Скрипт остановки (Windows)
+│   └── api-examples.http            # HTTP примеры для тестирования API
+│
+├── 🌐 eureka-server/ (Service Discovery)
+│   ├── pom.xml
+│   └── src/
+│       └── main/
+│           ├── java/org/example/eureka/
+│           │   └── EurekaServerApplication.java
+│           └── resources/
+│               └── application.yml
+│
+├── 🚪 api-gateway/ (API Gateway)
+│   ├── pom.xml
+│   └── src/
+│       └── main/
+│           ├── java/org/example/gateway/
+│           │   └── ApiGatewayApplication.java
+│           └── resources/
+│               └── application.yml
+│
+├── 👥 team-service/ (Управление командами и пользователями)
+│   ├── pom.xml
+│   └── src/
+│       └── main/
+│           ├── java/org/example/team/
+│           │   ├── TeamServiceApplication.java
+│           │   ├── controller/
+│           │   │   ├── TeamController.java
+│           │   │   └── UserController.java
+│           │   ├── dto/
+│           │   │   ├── TeamDto.java
+│           │   │   └── UserDto.java
+│           │   ├── entity/
+│           │   │   ├── Team.java
+│           │   │   ├── User.java
+│           │   │   └── UserRole.java
+│           │   ├── repository/
+│           │   │   ├── TeamRepository.java
+│           │   │   └── UserRepository.java
+│           │   └── service/
+│           │       ├── TeamService.java
+│           │       └── UserService.java
+│           └── resources/
+│               └── application.yml
+│
+├── 🏃 sprint-service/ (Управление спринтами и МВП)
+│   ├── pom.xml
+│   └── src/
+│       └── main/
+│           ├── java/org/example/sprint/
+│           │   ├── SprintServiceApplication.java
+│           │   ├── client/
+│           │   │   ├── TeamServiceClient.java
+│           │   │   ├── TeamDto.java
+│           │   │   ├── UserDto.java
+│           │   │   ├── TaskServiceClient.java
+│           │   │   └── TaskDto.java
+│           │   ├── controller/
+│           │   │   └── SprintController.java
+│           │   ├── dto/
+│           │   │   └── SprintDto.java
+│           │   ├── entity/
+│           │   │   ├── Sprint.java
+│           │   │   ├── SprintType.java
+│           │   │   └── SprintStatus.java
+│           │   ├── repository/
+│           │   │   └── SprintRepository.java
+│           │   └── service/
+│           │       └── SprintService.java
+│           └── resources/
+│               └── application.yml
+│
+└── ✅ task-service/ (Управление задачами, артефактами, комментариями)
+    ├── pom.xml
+    └── src/
+        └── main/
+            ├── java/org/example/task/
+            │   ├── TaskServiceApplication.java
+            │   ├── client/
+            │   │   ├── UserServiceClient.java
+            │   │   ├── UserDto.java
+            │   │   ├── SprintServiceClient.java
+            │   │   └── SprintDto.java
+            │   ├── controller/
+            │   │   ├── TaskController.java
+            │   │   ├── ArtifactController.java
+            │   │   └── CommentController.java
+            │   ├── dto/
+            │   │   ├── TaskDto.java
+            │   │   ├── ArtifactDto.java
+            │   │   └── CommentDto.java
+            │   ├── entity/
+            │   │   ├── Task.java
+            │   │   ├── TaskStatus.java
+            │   │   ├── Artifact.java
+            │   │   └── Comment.java
+            │   ├── repository/
+            │   │   ├── TaskRepository.java
+            │   │   ├── ArtifactRepository.java
+            │   │   └── CommentRepository.java
+            │   └── service/
+            │       ├── TaskService.java
+            │       ├── ArtifactService.java
+            │       └── CommentService.java
+            └── resources/
+                └── application.yml
+
+==========================================
+Статистика проекта:
+==========================================
+
+📦 Микросервисы: 5
+   - Eureka Server (8761)
+   - API Gateway (8080)
+   - Team Service (8081)
+   - Sprint Service (8082)
+   - Task Service (8083)
+
+📊 Сущности (Entities): 7
+   - Team
+   - User
+   - Sprint
+   - Task
+   - Artifact
+   - Comment
+   - Enums (4)
+
+🔌 REST Controllers: 7
+   - TeamController
+   - UserController
+   - SprintController
+   - TaskController
+   - ArtifactController
+   - CommentController
+
+💾 Repositories: 7
+   - TeamRepository
+   - UserRepository
+   - SprintRepository
+   - TaskRepository
+   - ArtifactRepository
+   - CommentRepository
+
+⚙️ Services: 7
+   - TeamService
+   - UserService
+   - SprintService
+   - TaskService
+   - ArtifactService
+   - CommentService
+
+🔗 Feign Clients: 3
+   - TeamServiceClient (в sprint-service)
+   - TaskServiceClient (в sprint-service)
+   - UserServiceClient (в task-service)
+   - SprintServiceClient (в task-service)
+
+📝 DTO классы: 10
+   - TeamDto
+   - UserDto
+   - SprintDto
+   - TaskDto
+   - ArtifactDto
+   - CommentDto
+   - + клиентские DTO
+
+📚 Файлов документации: 9
+   - README.md
+   - QUICKSTART.md
+   - ARCHITECTURE.md
+   - DEVELOPMENT.md
+   - USAGE_EXAMPLES.md
+   - CHANGELOG.md
+   - PROJECT_SUMMARY.md
+   - PROJECT_STRUCTURE.txt
+   - api-examples.http
+
+🗄️ Базы данных: 3
+   - team_db (PostgreSQL, порт 5432)
+   - sprint_db (PostgreSQL, порт 5433)
+   - task_db (PostgreSQL, порт 5434)
+
+==========================================
+Технологический стек:
+==========================================
+
+Backend:
+- Java 17
+- Spring Boot 3.2.0
+- Spring Cloud 2023.0.0
+- Spring Data JPA
+- Spring Cloud Netflix Eureka
+- Spring Cloud Gateway
+- Spring Cloud OpenFeign
+
+Database:
+- PostgreSQL 15
+
+Tools:
+- Maven
+- Docker & Docker Compose
+- Lombok
+- Springdoc OpenAPI (Swagger)
+
+==========================================
+Порты сервисов:
+==========================================
+
+8761 - Eureka Server (Service Discovery)
+8080 - API Gateway (единая точка входа)
+8081 - Team Service
+8082 - Sprint Service
+8083 - Task Service
+
+5432 - PostgreSQL (team_db)
+5433 - PostgreSQL (sprint_db)
+5434 - PostgreSQL (task_db)
+
+==========================================
+Основные endpoints:
+==========================================
+
+Teams:
+  GET    /api/teams
+  GET    /api/teams/{id}
+  POST   /api/teams
+  PUT    /api/teams/{id}
+  DELETE /api/teams/{id}
+
+Users:
+  GET    /api/users
+  GET    /api/users/{id}
+  GET    /api/users/team/{teamId}
+  POST   /api/users
+  PUT    /api/users/{id}
+  DELETE /api/users/{id}
+
+Sprints:
+  GET    /api/sprints
+  GET    /api/sprints/{id}
+  GET    /api/sprints/team/{teamId}
+  GET    /api/sprints/status/{status}
+  POST   /api/sprints
+  PUT    /api/sprints/{id}
+  PATCH  /api/sprints/{id}/submit
+  PATCH  /api/sprints/{id}/approve
+  PATCH  /api/sprints/{id}/reject
+  DELETE /api/sprints/{id}
+
+Tasks:
+  GET    /api/tasks
+  GET    /api/tasks/{id}
+  GET    /api/tasks/sprint/{sprintId}
+  GET    /api/tasks/status/{status}
+  GET    /api/tasks/assigned/{userId}
+  POST   /api/tasks
+  PUT    /api/tasks/{id}
+  PATCH  /api/tasks/{id}/submit
+  PATCH  /api/tasks/{id}/approve
+  PATCH  /api/tasks/{id}/reject
+  DELETE /api/tasks/{id}
+
+Artifacts:
+  GET    /api/artifacts/task/{taskId}
+  GET    /api/artifacts/{id}
+  POST   /api/artifacts
+  DELETE /api/artifacts/{id}
+
+Comments:
+  GET    /api/comments/task/{taskId}
+  GET    /api/comments/{id}
+  POST   /api/comments
+  PUT    /api/comments/{id}
+  DELETE /api/comments/{id}
+
+==========================================
+Swagger UI:
+==========================================
+
+Team Service:   http://localhost:8081/swagger-ui.html
+Sprint Service: http://localhost:8082/swagger-ui.html
+Task Service:   http://localhost:8083/swagger-ui.html
+
+==========================================
+Проект готов к использованию! 🚀
+==========================================

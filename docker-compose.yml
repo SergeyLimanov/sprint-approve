@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # PostgreSQL для team-service
+  team-db:
+    image: postgres:15-alpine
+    container_name: team-db
+    environment:
+      POSTGRES_DB: team_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - team-db-data:/var/lib/postgresql/data
+    networks:
+      - sprint-approve-network
+
+  # PostgreSQL для sprint-service
+  sprint-db:
+    image: postgres:15-alpine
+    container_name: sprint-db
+    environment:
+      POSTGRES_DB: sprint_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - sprint-db-data:/var/lib/postgresql/data
+    networks:
+      - sprint-approve-network
+
+  # PostgreSQL для task-service
+  task-db:
+    image: postgres:15-alpine
+    container_name: task-db
+    environment:
+      POSTGRES_DB: task_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - task-db-data:/var/lib/postgresql/data
+    networks:
+      - sprint-approve-network
+
+volumes:
+  team-db-data:
+  sprint-db-data:
+  task-db-data:
+
+networks:
+  sprint-approve-network:
+    driver: bridge

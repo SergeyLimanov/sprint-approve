@@ -1,0 +1,185 @@
+package org.example.sprint.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.sprint.client.TaskDto;
+import org.example.sprint.client.TaskServiceClient;
+import org.example.sprint.client.TeamDto;
+import org.example.sprint.client.TeamServiceClient;
+import org.example.sprint.client.UserDto;
+import org.example.sprint.dto.SprintDto;
+import org.example.sprint.entity.Sprint;
+import org.example.sprint.entity.SprintStatus;
+import org.example.sprint.repository.SprintRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class SprintService {
+    private final SprintRepository sprintRepository;
+    private final TeamServiceClient teamServiceClient;
+    private final TaskServiceClient taskServiceClient;
+
+    @Transactional(readOnly = true)
+    public List<SprintDto> getAllSprints() {
+        return sprintRepository.findAll().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public SprintDto getSprintById(Long id) {
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
+        return convertToDto(sprint);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SprintDto> getSprintsByTeamId(Long teamId) {
+        return sprintRepository.findByTeamId(teamId).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SprintDto> getSprintsByStatus(SprintStatus status) {
+        return sprintRepository.findByStatus(status).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public SprintDto createSprint(SprintDto sprintDto) {
+        Sprint sprint = new Sprint();
+        sprint.setName(sprintDto.getName());
+        sprint.setDescription(sprintDto.getDescription());
+        sprint.setTeamId(sprintDto.getTeamId());
+        sprint.setType(sprintDto.getType());
+        sprint.setStatus(SprintStatus.CREATED);
+        sprint.setStartDate(sprintDto.getStartDate());
+        sprint.setEndDate(sprintDto.getEndDate());
+        sprint.setCreatedBy(sprintDto.getCreatedBy());
+
+        Sprint savedSprint = sprintRepository.save(sprint);
+        return convertToDto(savedSprint);
+    }
+
+    @Transactional
+    public SprintDto updateSprint(Long id, SprintDto sprintDto) {
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
+
+        sprint.setName(sprintDto.getName());
+        sprint.setDescription(sprintDto.getDescription());
+        sprint.setStartDate(sprintDto.getStartDate());
+        sprint.setEndDate(sprintDto.getEndDate());
+
+        Sprint updatedSprint = sprintRepository.save(sprint);
+        return convertToDto(updatedSprint);
+    }
+
+    @Transactional
+    public SprintDto updateSprintStatus(Long id, SprintStatus status) {
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
+
+        sprint.setStatus(status);
+        Sprint updatedSprint = sprintRepository.save(sprint);
+        return convertToDto(updatedSprint);
+    }
+
+    @Transactional
+    public SprintDto submitForReview(Long id) {
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
+
+        if (sprint.getStatus() != SprintStatus.CREATED) {
+            throw new RuntimeException("Only sprints with CREATED status can be submitted for review");
+        }
+
+        sprint.setStatus(SprintStatus.ON_REVIEW);
+        Sprint updatedSprint = sprintRepository.save(sprint);
+        return convertToDto(updatedSprint);
+    }
+
+    @Transactional
+    public SprintDto approveSprint(Long id) {
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
+
+        // Check if all tasks are approved
+        try {
+            List<TaskDto> tasks = taskServiceClient.getTasksBySprintId(id);
+            boolean allTasksApproved = tasks.stream()
+                    .allMatch(task -> "APPROVED".equals(task.getStatus()));
+
+            if (!allTasksApproved) {
+                throw new RuntimeException("Cannot approve sprint: not all tasks are approved");
+            }
+        } catch (Exception e) {
+            log.warn("Could not verify tasks status: {}", e.getMessage());
+        }
+
+        sprint.setStatus(SprintStatus.APPROVED);
+        Sprint updatedSprint = sprintRepository.save(sprint);
+        return convertToDto(updatedSprint);
+    }
+
+    @Transactional
+    public SprintDto rejectSprint(Long id) {
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
+
+        sprint.setStatus(SprintStatus.REJECTED);
+        Sprint updatedSprint = sprintRepository.save(sprint);
+        return convertToDto(updatedSprint);
+    }
+
+    @Transactional
+    public void deleteSprint(Long id) {
+        if (!sprintRepository.existsById(id)) {
+            throw new RuntimeException("Sprint not found with id: " + id);
+        }
+        sprintRepository.deleteById(id);
+    }
+
+    private SprintDto convertToDto(Sprint sprint) {
+        SprintDto dto = new SprintDto();
+        dto.setId(sprint.getId());
+        dto.setName(sprint.getName());
+        dto.setDescription(sprint.getDescription());
+        dto.setTeamId(sprint.getTeamId());
+        dto.setType(sprint.getType());
+        dto.setStatus(sprint.getStatus());
+        dto.setStartDate(sprint.getStartDate());
+        dto.setEndDate(sprint.getEndDate());
+        dto.setCreatedBy(sprint.getCreatedBy());
+        dto.setCreatedAt(sprint.getCreatedAt());
+        dto.setUpdatedAt(sprint.getUpdatedAt());
+
+        // Fetch team name
+        try {
+            TeamDto team = teamServiceClient.getTeamById(sprint.getTeamId());
+            dto.setTeamName(team.getName());
+        } catch (Exception e) {
+            log.warn("Could not fetch team name for team id {}: {}", sprint.getTeamId(), e.getMessage());
+        }
+
+        // Fetch creator name
+        if (sprint.getCreatedBy() != null) {
+            try {
+                UserDto user = teamServiceClient.getUserById(sprint.getCreatedBy());
+                dto.setCreatedByName(user.getName());
+            } catch (Exception e) {
+                log.warn("Could not fetch user name for user id {}: {}", sprint.getCreatedBy(), e.getMessage());
+            }
+        }
+
+        return dto;
+    }
+}

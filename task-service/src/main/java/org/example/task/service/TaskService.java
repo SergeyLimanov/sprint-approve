@@ -1,0 +1,202 @@
+package org.example.task.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.task.client.SprintServiceClient;
+import org.example.task.client.UserDto;
+import org.example.task.client.UserServiceClient;
+import org.example.task.dto.TaskDto;
+import org.example.task.entity.Task;
+import org.example.task.entity.TaskStatus;
+import org.example.task.repository.TaskRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class TaskService {
+    private final TaskRepository taskRepository;
+    private final UserServiceClient userServiceClient;
+    private final SprintServiceClient sprintServiceClient;
+
+    @Transactional(readOnly = true)
+    public List<TaskDto> getAllTasks() {
+        return taskRepository.findAll().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public TaskDto getTaskById(Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+        return convertToDto(task);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskDto> getTasksBySprintId(Long sprintId) {
+        return taskRepository.findBySprintId(sprintId).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskDto> getTasksByStatus(TaskStatus status) {
+        return taskRepository.findByStatus(status).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskDto> getTasksByAssignedTo(Long userId) {
+        return taskRepository.findByAssignedTo(userId).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public TaskDto createTask(TaskDto taskDto) {
+        Task task = new Task();
+        task.setTitle(taskDto.getTitle());
+        task.setDescription(taskDto.getDescription());
+        task.setSprintId(taskDto.getSprintId());
+        task.setStatus(TaskStatus.CREATED);
+        task.setAssignedTo(taskDto.getAssignedTo());
+        task.setApproverId(taskDto.getApproverId());
+        task.setCreatedBy(taskDto.getCreatedBy());
+
+        Task savedTask = taskRepository.save(task);
+        return convertToDto(savedTask);
+    }
+
+    @Transactional
+    public TaskDto updateTask(Long id, TaskDto taskDto) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+
+        task.setTitle(taskDto.getTitle());
+        task.setDescription(taskDto.getDescription());
+        task.setAssignedTo(taskDto.getAssignedTo());
+        task.setApproverId(taskDto.getApproverId());
+
+        Task updatedTask = taskRepository.save(task);
+        return convertToDto(updatedTask);
+    }
+
+    @Transactional
+    public TaskDto submitForReview(Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+
+        if (task.getStatus() != TaskStatus.CREATED) {
+            throw new RuntimeException("Only tasks with CREATED status can be submitted for review");
+        }
+
+        task.setStatus(TaskStatus.ON_REVIEW);
+        Task updatedTask = taskRepository.save(task);
+        return convertToDto(updatedTask);
+    }
+
+    @Transactional
+    public TaskDto approveTask(Long id, Long approverId) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+
+        if (task.getApproverId() != null && !task.getApproverId().equals(approverId)) {
+            throw new RuntimeException("Only the assigned approver can approve this task");
+        }
+
+        task.setStatus(TaskStatus.APPROVED);
+        Task updatedTask = taskRepository.save(task);
+
+        // Check if all tasks in sprint are approved
+        checkAndUpdateSprintStatus(task.getSprintId());
+
+        return convertToDto(updatedTask);
+    }
+
+    @Transactional
+    public TaskDto rejectTask(Long id, Long approverId) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+
+        if (task.getApproverId() != null && !task.getApproverId().equals(approverId)) {
+            throw new RuntimeException("Only the assigned approver can reject this task");
+        }
+
+        task.setStatus(TaskStatus.REJECTED);
+        Task updatedTask = taskRepository.save(task);
+        return convertToDto(updatedTask);
+    }
+
+    @Transactional
+    public void deleteTask(Long id) {
+        if (!taskRepository.existsById(id)) {
+            throw new RuntimeException("Task not found with id: " + id);
+        }
+        taskRepository.deleteById(id);
+    }
+
+    private void checkAndUpdateSprintStatus(Long sprintId) {
+        List<Task> tasks = taskRepository.findBySprintId(sprintId);
+        boolean allApproved = tasks.stream()
+                .allMatch(task -> task.getStatus() == TaskStatus.APPROVED);
+
+        if (allApproved && !tasks.isEmpty()) {
+            try {
+                sprintServiceClient.approveSprint(sprintId);
+                log.info("Sprint {} automatically approved - all tasks are approved", sprintId);
+            } catch (Exception e) {
+                log.error("Failed to auto-approve sprint {}: {}", sprintId, e.getMessage());
+            }
+        }
+    }
+
+    private TaskDto convertToDto(Task task) {
+        TaskDto dto = new TaskDto();
+        dto.setId(task.getId());
+        dto.setTitle(task.getTitle());
+        dto.setDescription(task.getDescription());
+        dto.setSprintId(task.getSprintId());
+        dto.setStatus(task.getStatus());
+        dto.setAssignedTo(task.getAssignedTo());
+        dto.setApproverId(task.getApproverId());
+        dto.setCreatedBy(task.getCreatedBy());
+        dto.setCreatedAt(task.getCreatedAt());
+        dto.setUpdatedAt(task.getUpdatedAt());
+
+        // Fetch user names
+        if (task.getAssignedTo() != null) {
+            try {
+                UserDto user = userServiceClient.getUserById(task.getAssignedTo());
+                dto.setAssignedToName(user.getName());
+            } catch (Exception e) {
+                log.warn("Could not fetch user name for user id {}: {}", task.getAssignedTo(), e.getMessage());
+            }
+        }
+
+        if (task.getApproverId() != null) {
+            try {
+                UserDto user = userServiceClient.getUserById(task.getApproverId());
+                dto.setApproverName(user.getName());
+            } catch (Exception e) {
+                log.warn("Could not fetch approver name for user id {}: {}", task.getApproverId(), e.getMessage());
+            }
+        }
+
+        if (task.getCreatedBy() != null) {
+            try {
+                UserDto user = userServiceClient.getUserById(task.getCreatedBy());
+                dto.setCreatedByName(user.getName());
+            } catch (Exception e) {
+                log.warn("Could not fetch creator name for user id {}: {}", task.getCreatedBy(), e.getMessage());
+            }
+        }
+
+        return dto;
+    }
+}

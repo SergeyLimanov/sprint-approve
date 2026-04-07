@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: team-service
+          uri: lb://team-service
+          predicates:
+            - Path=/api/teams/**, /api/users/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+
+        - id: sprint-service
+          uri: lb://sprint-service
+          predicates:
+            - Path=/api/sprints/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+
+        - id: task-service
+          uri: lb://task-service
+          predicates:
+            - Path=/api/tasks/**, /api/artifacts/**, /api/comments/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

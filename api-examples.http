@@ -1,0 +1,290 @@
+### Sprint Approve API Examples
+### Используйте этот файл в IntelliJ IDEA или VS Code с REST Client плагином
+
+### Базовый URL
+@baseUrl = http://localhost:8080
+
+### ============================================
+### TEAM SERVICE - Teams
+### ============================================
+
+### Создать команду
+POST {{baseUrl}}/api/teams
+Content-Type: application/json
+
+{
+  "name": "Backend Team",
+  "description": "Команда разработки бэкенда"
+}
+
+### Получить все команды
+GET {{baseUrl}}/api/teams
+
+### Получить команду по ID
+GET {{baseUrl}}/api/teams/1
+
+### Обновить команду
+PUT {{baseUrl}}/api/teams/1
+Content-Type: application/json
+
+{
+  "name": "Backend Team Updated",
+  "description": "Обновленное описание команды"
+}
+
+### ============================================
+### TEAM SERVICE - Users
+### ============================================
+
+### Создать пользователя
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "name": "John Doe",
+  "teamId": 1,
+  "role": "DEVELOPER"
+}
+
+### Создать менеджера
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "email": "manager@example.com",
+  "name": "Manager Smith",
+  "teamId": 1,
+  "role": "MANAGER"
+}
+
+### Создать аппрувера
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "email": "approver@example.com",
+  "name": "Approver Johnson",
+  "teamId": 1,
+  "role": "APPROVER"
+}
+
+### Получить всех пользователей
+GET {{baseUrl}}/api/users
+
+### Получить пользователей команды
+GET {{baseUrl}}/api/users/team/1
+
+### ============================================
+### SPRINT SERVICE - Sprints
+### ============================================
+
+### Создать спринт
+POST {{baseUrl}}/api/sprints
+Content-Type: application/json
+
+{
+  "name": "Sprint 1",
+  "description": "Первый спринт проекта",
+  "teamId": 1,
+  "type": "SPRINT",
+  "startDate": "2026-04-07T00:00:00",
+  "endDate": "2026-04-21T00:00:00",
+  "createdBy": 1
+}
+
+### Создать МВП
+POST {{baseUrl}}/api/sprints
+Content-Type: application/json
+
+{
+  "name": "MVP v1.0",
+  "description": "Минимально жизнеспособный продукт",
+  "teamId": 1,
+  "type": "MVP",
+  "startDate": "2026-04-07T00:00:00",
+  "endDate": "2026-05-07T00:00:00",
+  "createdBy": 2
+}
+
+### Получить все спринты
+GET {{baseUrl}}/api/sprints
+
+### Получить спринты команды
+GET {{baseUrl}}/api/sprints/team/1
+
+### Получить спринты по статусу
+GET {{baseUrl}}/api/sprints/status/CREATED
+
+### Отправить спринт на рассмотрение
+PATCH {{baseUrl}}/api/sprints/1/submit
+
+### Одобрить спринт
+PATCH {{baseUrl}}/api/sprints/1/approve
+
+### Отклонить спринт
+PATCH {{baseUrl}}/api/sprints/1/reject
+
+### ============================================
+### TASK SERVICE - Tasks
+### ============================================
+
+### Создать задачу
+POST {{baseUrl}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Разработать API для пользователей",
+  "description": "Создать REST API для управления пользователями",
+  "sprintId": 1,
+  "assignedTo": 1,
+  "approverId": 3,
+  "createdBy": 2
+}
+
+### Создать еще одну задачу
+POST {{baseUrl}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Настроить базу данных",
+  "description": "Создать схему БД и миграции",
+  "sprintId": 1,
+  "assignedTo": 1,
+  "approverId": 3,
+  "createdBy": 2
+}
+
+### Получить все задачи
+GET {{baseUrl}}/api/tasks
+
+### Получить задачи спринта
+GET {{baseUrl}}/api/tasks/sprint/1
+
+### Получить задачи пользователя
+GET {{baseUrl}}/api/tasks/assigned/1
+
+### Отправить задачу на рассмотрение
+PATCH {{baseUrl}}/api/tasks/1/submit
+
+### Одобрить задачу (approverId должен совпадать с назначенным)
+PATCH {{baseUrl}}/api/tasks/1/approve?approverId=3
+
+### Отклонить задачу
+PATCH {{baseUrl}}/api/tasks/1/reject?approverId=3
+
+### ============================================
+### TASK SERVICE - Artifacts
+### ============================================
+
+### Добавить артефакт к задаче
+POST {{baseUrl}}/api/artifacts
+Content-Type: application/json
+
+{
+  "name": "Диаграмма архитектуры",
+  "url": "https://example.com/diagrams/architecture.png",
+  "fileType": "image/png",
+  "fileSize": 245678,
+  "taskId": 1,
+  "uploadedBy": 1
+}
+
+### Получить артефакты задачи
+GET {{baseUrl}}/api/artifacts/task/1
+
+### ============================================
+### TASK SERVICE - Comments
+### ============================================
+
+### Добавить комментарий к задаче
+POST {{baseUrl}}/api/comments
+Content-Type: application/json
+
+{
+  "content": "Задача выполнена, готово к ревью",
+  "taskId": 1,
+  "authorId": 1
+}
+
+### Добавить еще комментарий
+POST {{baseUrl}}/api/comments
+Content-Type: application/json
+
+{
+  "content": "Проверил, все отлично! Одобряю.",
+  "taskId": 1,
+  "authorId": 3
+}
+
+### Получить комментарии задачи
+GET {{baseUrl}}/api/comments/task/1
+
+### ============================================
+### WORKFLOW EXAMPLE - Полный цикл согласования
+### ============================================
+
+### 1. Создать команду
+POST {{baseUrl}}/api/teams
+Content-Type: application/json
+
+{
+  "name": "Development Team",
+  "description": "Основная команда разработки"
+}
+
+### 2. Создать пользователей
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "email": "dev@example.com",
+  "name": "Developer",
+  "teamId": 1,
+  "role": "DEVELOPER"
+}
+
+###
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "email": "lead@example.com",
+  "name": "Team Lead",
+  "teamId": 1,
+  "role": "APPROVER"
+}
+
+### 3. Создать спринт
+POST {{baseUrl}}/api/sprints
+Content-Type: application/json
+
+{
+  "name": "Sprint 1",
+  "description": "Первый спринт",
+  "teamId": 1,
+  "type": "SPRINT",
+  "createdBy": 2
+}
+
+### 4. Создать задачи в спринте
+POST {{baseUrl}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Task 1",
+  "description": "Первая задача",
+  "sprintId": 1,
+  "assignedTo": 1,
+  "approverId": 2,
+  "createdBy": 2
+}
+
+### 5. Отправить задачу на ревью
+PATCH {{baseUrl}}/api/tasks/1/submit
+
+### 6. Одобрить задачу
+PATCH {{baseUrl}}/api/tasks/1/approve?approverId=2
+
+### 7. Проверить статус спринта (должен автоматически стать APPROVED)
+GET {{baseUrl}}/api/sprints/1
