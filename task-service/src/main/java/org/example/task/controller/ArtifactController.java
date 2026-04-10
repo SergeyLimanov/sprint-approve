@@ -51,7 +51,8 @@ public class ArtifactController {
     public ResponseEntity<ArtifactDto> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("taskId") Long taskId,
-            @RequestParam("uploadedBy") Long uploadedBy) {
+            @RequestParam("uploadedBy") Long uploadedBy,
+            @RequestParam(value = "name", required = false) String customName) {
         
         String fileName = fileStorageService.storeFile(file);
         
@@ -61,7 +62,10 @@ public class ArtifactController {
                 .toUriString();
 
         ArtifactDto artifactDto = new ArtifactDto();
-        artifactDto.setName(file.getOriginalFilename());
+        // Use custom name if provided, otherwise use original filename
+        artifactDto.setName(customName != null && !customName.trim().isEmpty() 
+                ? customName 
+                : file.getOriginalFilename());
         artifactDto.setUrl(fileDownloadUri);
         artifactDto.setTaskId(taskId);
         artifactDto.setUploadedBy(uploadedBy);

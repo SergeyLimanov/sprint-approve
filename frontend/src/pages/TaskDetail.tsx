@@ -13,11 +13,10 @@ export default function TaskDetail() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [newArtifactComment, setNewArtifactComment] = useState<Record<number, string>>({});
-  const [newArtifact, setNewArtifact] = useState({ name: '', url: '' });
+  const [newArtifact, setNewArtifact] = useState({ name: '', url: '', file: null as File | null });
   const [showArtifactForm, setShowArtifactForm] = useState(false);
   const [expandedArtifacts, setExpandedArtifacts] = useState<Record<number, boolean>>({});
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -84,73 +83,62 @@ export default function TaskDetail() {
       });
       setNewComment('');
       loadComments(task.id);
-    } catch (error) {
-      console.error('Failed to add comment:', error);
     }
   };
 
   const handleAddArtifact = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!task || !newArtifact.name || !newArtifact.url) return;
+    if (!task) return;
 
+    // Validate: must have either URL or file
+    if (!newArtifact.url.trim() && !newArtifact.file) {
+      alert('Пожалуйста, укажите URL или загрузите файл');
+      return;
+    }
+
+    setUploadingFile(true);
     try {
-      await artifactsApi.create({
-        ...newArtifact,
-        taskId: task.id,
-        uploadedBy: 1, // TODO: Replace with actual user ID
-      });
-      setNewArtifact({ name: '', url: '' });
+      if (newArtifact.file) {
+        // Upload file
+        const formData = new FormData();
+        formData.append('file', newArtifact.file);
+        formData.append('taskId', task.id.toString());
+        formData.append('uploadedBy', '1'); // TODO: Replace with actual user ID
+        formData.append('name', newArtifact.name.trim() || newArtifact.file.name);
+
+        await artifactsApi.upload(formData);
+      } else {
+        // Create artifact with URL
+        await artifactsApi.create({
+          name: newArtifact.name.trim(),
+          url: newArtifact.url.trim(),
+          taskId: task.id,
+          uploadedBy: 1, // TODO: Replace with actual user ID
+        });
+      }
+
+      setNewArtifact({ name: '', url: '', file: null });
       setShowArtifactForm(false);
       loadArtifacts(task.id);
     } catch (error) {
       console.error('Failed to add artifact:', error);
-    }
-  };
-
-  const handleFileUpload = async (file: File) => {
-    if (!task) return;
-    
-    setUploadingFile(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('taskId', task.id.toString());
-      formData.append('uploadedBy', '1'); // TODO: Replace with actual user ID
-
-      await artifactsApi.upload(formData);
-      loadArtifacts(task.id);
-    } catch (error) {
-      console.error('Failed to upload file:', error);
-      alert('Ошибка при загрузке файла');
+      alert('Ошибка при добавлении артефакта');
     } finally {
       setUploadingFile(false);
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
+      const file = e.target.files[0];
+      setNewArtifact(prev => ({
+        ...prev,
+        file: file,
+        name: prev.name || file.name // Auto-fill name if empty
+      }));
     }
+    // Reset input to allow selecting the same file again
+    e.target.value = '';
   };
 
   const handleDeleteArtifact = async (artifactId: number) => {
@@ -336,37 +324,8 @@ export default function TaskDetail() {
             </button>
           </div>
 
-          {/* Drag & Drop Zone */}
-          <div
-            className={`mb-4 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-              dragActive ? 'border-primary-500 bg-primary-50' : 'border-gray-300 bg-gray-50'
-            }`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-          >
-            <input
-              type="file"
-              id="file-upload"
-              className="hidden"
-              onChange={handleFileInputChange}
-              accept="image/*,.pdf,.doc,.docx,.txt"
-            />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600">
-                {uploadingFile ? 'Загрузка...' : 'Перетащите файл сюда или нажмите для выбора'}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Поддерживаются: изображения, PDF, документы
-              </p>
-            </label>
-          </div>
-
           {showArtifactForm && (
             <form onSubmit={handleAddArtifact} className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-3">Или добавьте ссылку на внешний файл:</p>
               <div className="mb-3">
                 <label className="label">Название *</label>
                 <input
@@ -374,9 +333,26 @@ export default function TaskDetail() {
                   className="input"
                   value={newArtifact.name}
                   onChange={(e) => setNewArtifact({ ...newArtifact, name: e.target.value })}
+                  placeholder="Введите название артефакта"
                   required
                 />
               </div>
+
+              <div className="mb-3">
+                <label className="label">Файл</label>
+                <input
+                  type="file"
+                  className="input"
+                  onChange={handleFileSelect}
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                />
+                {newArtifact.file && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    Выбран: {newArtifact.file.name} ({(newArtifact.file.size / 1024).toFixed(1)} KB)
+                  </p>
+                )}
+              </div>
+
               <div className="mb-3">
                 <label className="label">URL</label>
                 <input
@@ -386,15 +362,27 @@ export default function TaskDetail() {
                   onChange={(e) => setNewArtifact({ ...newArtifact, url: e.target.value })}
                   placeholder="https://example.com/file.pdf"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Укажите файл или URL (или оба)
+                </p>
               </div>
+
               <div className="flex space-x-2">
-                <button type="submit" className="btn btn-primary btn-sm">
-                  Сохранить
+                <button 
+                  type="submit" 
+                  className="btn btn-primary btn-sm"
+                  disabled={uploadingFile}
+                >
+                  {uploadingFile ? 'Сохранение...' : 'Сохранить'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowArtifactForm(false)}
+                  onClick={() => {
+                    setShowArtifactForm(false);
+                    setNewArtifact({ name: '', url: '', file: null });
+                  }}
                   className="btn btn-secondary btn-sm"
+                  disabled={uploadingFile}
                 >
                   Отмена
                 </button>
