@@ -17,8 +17,7 @@ public class ArtifactDto {
     @NotBlank(message = "Artifact name is required")
     private String name;
 
-    @NotBlank(message = "Artifact URL is required")
-    private String url;
+    private String url; // Optional - can be null for uploaded files
 
     private String fileType;
     private Long fileSize;

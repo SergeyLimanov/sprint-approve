@@ -378,13 +378,13 @@ export default function TaskDetail() {
                 />
               </div>
               <div className="mb-3">
-                <label className="label">URL *</label>
+                <label className="label">URL</label>
                 <input
                   type="url"
                   className="input"
                   value={newArtifact.url}
                   onChange={(e) => setNewArtifact({ ...newArtifact, url: e.target.value })}
-                  required
+                  placeholder="https://example.com/file.pdf"
                 />
               </div>
               <div className="flex space-x-2">
