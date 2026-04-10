@@ -61,6 +61,11 @@ export const artifactsApi = {
   getByTask: (taskId: number) => api.get<Artifact[]>(`/artifacts/task/${taskId}`),
   getById: (id: number) => api.get<Artifact>(`/artifacts/${id}`),
   create: (data: Partial<Artifact>) => api.post<Artifact>('/artifacts', data),
+  upload: (formData: FormData) => api.post<Artifact>('/artifacts/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
   delete: (id: number) => api.delete(`/artifacts/${id}`),
 };
 

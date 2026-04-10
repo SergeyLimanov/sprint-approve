@@ -22,6 +22,7 @@ public class ArtifactService {
     private final ArtifactRepository artifactRepository;
     private final TaskRepository taskRepository;
     private final UserServiceClient userServiceClient;
+    private final FileStorageService fileStorageService;
 
     @Transactional(readOnly = true)
     public List<ArtifactDto> getArtifactsByTaskId(Long taskId) {
@@ -56,9 +57,15 @@ public class ArtifactService {
 
     @Transactional
     public void deleteArtifact(Long id) {
-        if (!artifactRepository.existsById(id)) {
-            throw new RuntimeException("Artifact not found with id: " + id);
+        Artifact artifact = artifactRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Artifact not found with id: " + id));
+        
+        // Delete physical file if it's a local file
+        if (artifact.getUrl() != null && artifact.getUrl().contains("/api/artifacts/files/")) {
+            String fileName = artifact.getUrl().substring(artifact.getUrl().lastIndexOf("/") + 1);
+            fileStorageService.deleteFile(fileName);
         }
+        
         artifactRepository.deleteById(id);
     }
 

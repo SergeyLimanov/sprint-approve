@@ -16,6 +16,8 @@ export default function TaskDetail() {
   const [newArtifact, setNewArtifact] = useState({ name: '', url: '' });
   const [showArtifactForm, setShowArtifactForm] = useState(false);
   const [expandedArtifacts, setExpandedArtifacts] = useState<Record<number, boolean>>({});
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -102,6 +104,52 @@ export default function TaskDetail() {
       loadArtifacts(task.id);
     } catch (error) {
       console.error('Failed to add artifact:', error);
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!task) return;
+    
+    setUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('taskId', task.id.toString());
+      formData.append('uploadedBy', '1'); // TODO: Replace with actual user ID
+
+      await artifactsApi.upload(formData);
+      loadArtifacts(task.id);
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      alert('Ошибка при загрузке файла');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileUpload(e.target.files[0]);
     }
   };
 
@@ -288,8 +336,37 @@ export default function TaskDetail() {
             </button>
           </div>
 
+          {/* Drag & Drop Zone */}
+          <div
+            className={`mb-4 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              dragActive ? 'border-primary-500 bg-primary-50' : 'border-gray-300 bg-gray-50'
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            <input
+              type="file"
+              id="file-upload"
+              className="hidden"
+              onChange={handleFileInputChange}
+              accept="image/*,.pdf,.doc,.docx,.txt"
+            />
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <Upload className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-600">
+                {uploadingFile ? 'Загрузка...' : 'Перетащите файл сюда или нажмите для выбора'}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Поддерживаются: изображения, PDF, документы
+              </p>
+            </label>
+          </div>
+
           {showArtifactForm && (
             <form onSubmit={handleAddArtifact} className="mb-4 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600 mb-3">Или добавьте ссылку на внешний файл:</p>
               <div className="mb-3">
                 <label className="label">Название *</label>
                 <input
@@ -335,21 +412,36 @@ export default function TaskDetail() {
                 
                 return (
                   <div key={artifact.id} className="border border-gray-200 rounded-lg">
-                    <div className="flex items-center justify-between p-3 bg-gray-50">
-                      <div className="flex-1">
-                        <a
-                          href={artifact.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary-600 hover:text-primary-700 font-medium"
-                        >
-                          {artifact.name}
-                        </a>
-                        {artifact.uploadedByName && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Загрузил: {artifact.uploadedByName}
-                          </div>
+                    <div className="flex items-start justify-between p-3 bg-gray-50">
+                      <div className="flex-1 flex items-start space-x-3">
+                        {/* Image Preview */}
+                        {artifact.fileType?.startsWith('image/') && (
+                          <img
+                            src={artifact.url}
+                            alt={artifact.name}
+                            className="w-16 h-16 object-cover rounded border border-gray-300"
+                          />
                         )}
+                        <div className="flex-1">
+                          <a
+                            href={artifact.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary-600 hover:text-primary-700 font-medium"
+                          >
+                            {artifact.name}
+                          </a>
+                          {artifact.uploadedByName && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Загрузил: {artifact.uploadedByName}
+                            </div>
+                          )}
+                          {artifact.fileSize && (
+                            <div className="text-xs text-gray-500">
+                              {(artifact.fileSize / 1024).toFixed(1)} KB
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <button
