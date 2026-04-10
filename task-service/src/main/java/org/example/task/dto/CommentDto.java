@@ -17,8 +17,9 @@ public class CommentDto {
     @NotBlank(message = "Comment content is required")
     private String content;
 
-    @NotNull(message = "Task ID is required")
     private Long taskId;
+
+    private Long artifactId;
 
     @NotNull(message = "Author ID is required")
     private Long authorId;

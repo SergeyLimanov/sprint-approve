@@ -1,19 +1,28 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { sprintsApi, tasksApi } from '../api/client';
-import type { Sprint, Task } from '../types';
+import { sprintsApi, tasksApi, usersApi } from '../api/client';
+import type { Sprint, Task, User } from '../types';
 import { TaskStatus, SprintStatus } from '../types';
-import { ArrowLeft, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Clock, Plus } from 'lucide-react';
 
 export default function SprintDetail() {
   const { id } = useParams<{ id: string }>();
   const [sprint, setSprint] = useState<Sprint | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    assignedTo: '',
+    approverId: '',
+  });
 
   useEffect(() => {
     if (id) {
       loadSprint(Number(id));
       loadTasks(Number(id));
+      loadUsers();
     }
   }, [id]);
 
@@ -35,6 +44,15 @@ export default function SprintDetail() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const response = await usersApi.getAll();
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    }
+  };
+
   const handleApprove = async () => {
     if (!sprint) return;
     try {
@@ -52,6 +70,32 @@ export default function SprintDetail() {
       loadSprint(sprint.id);
     } catch (error) {
       console.error('Failed to reject sprint:', error);
+    }
+  };
+
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sprint) return;
+    
+    try {
+      const data = {
+        ...formData,
+        sprintId: sprint.id,
+        assignedTo: formData.assignedTo ? Number(formData.assignedTo) : undefined,
+        approverId: formData.approverId ? Number(formData.approverId) : undefined,
+      };
+      
+      await tasksApi.create(data);
+      setIsModalOpen(false);
+      setFormData({
+        title: '',
+        description: '',
+        assignedTo: '',
+        approverId: '',
+      });
+      loadTasks(sprint.id);
+    } catch (error) {
+      console.error('Failed to create task:', error);
     }
   };
 
@@ -165,7 +209,13 @@ export default function SprintDetail() {
       </div>
 
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Задачи спринта</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Задачи спринта</h2>
+          <button onClick={() => setIsModalOpen(true)} className="btn btn-primary btn-sm flex items-center">
+            <Plus className="w-4 h-4 mr-2" />
+            Создать задачу
+          </button>
+        </div>
         {tasks.length === 0 ? (
           <p className="text-gray-500 text-center py-8">В этом спринте пока нет задач</p>
         ) : (
@@ -204,6 +254,78 @@ export default function SprintDetail() {
           </div>
         )}
       </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Создать задачу</h2>
+            <form onSubmit={handleCreateTask}>
+              <div className="mb-4">
+                <label className="label">Название *</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="label">Описание</label>
+                <textarea
+                  className="input"
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="label">Исполнитель</label>
+                <select
+                  className="input"
+                  value={formData.assignedTo}
+                  onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+                >
+                  <option value="">Не назначен</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mb-6">
+                <label className="label">Аппрувер</label>
+                <select
+                  className="input"
+                  value={formData.approverId}
+                  onChange={(e) => setFormData({ ...formData, approverId: e.target.value })}
+                >
+                  <option value="">Не назначен</option>
+                  {users.filter(u => u.role === 'APPROVER').map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="btn btn-secondary"
+                >
+                  Отмена
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Создать
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

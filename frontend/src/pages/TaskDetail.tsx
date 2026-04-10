@@ -9,10 +9,13 @@ export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const [task, setTask] = useState<Task | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [artifactComments, setArtifactComments] = useState<Record<number, Comment[]>>({});
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [newArtifactComment, setNewArtifactComment] = useState<Record<number, string>>({});
   const [newArtifact, setNewArtifact] = useState({ name: '', url: '' });
   const [showArtifactForm, setShowArtifactForm] = useState(false);
+  const [expandedArtifacts, setExpandedArtifacts] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     if (id) {
@@ -34,9 +37,27 @@ export default function TaskDetail() {
   const loadArtifacts = async (taskId: number) => {
     try {
       const response = await artifactsApi.getByTask(taskId);
-      setArtifacts(response.data);
+      const artifactsList = response.data;
+      setArtifacts(artifactsList);
+      
+      // Load comments for each artifact
+      for (const artifact of artifactsList) {
+        loadArtifactComments(artifact.id);
+      }
     } catch (error) {
       console.error('Failed to load artifacts:', error);
+    }
+  };
+
+  const loadArtifactComments = async (artifactId: number) => {
+    try {
+      const response = await commentsApi.getByArtifact(artifactId);
+      setArtifactComments(prev => ({
+        ...prev,
+        [artifactId]: response.data
+      }));
+    } catch (error) {
+      console.error('Failed to load artifact comments:', error);
     }
   };
 
@@ -104,6 +125,41 @@ export default function TaskDetail() {
     } catch (error) {
       console.error('Failed to delete comment:', error);
     }
+  };
+
+  const handleAddArtifactComment = async (artifactId: number) => {
+    const commentText = newArtifactComment[artifactId];
+    if (!commentText?.trim()) return;
+
+    try {
+      await commentsApi.create({
+        content: commentText,
+        artifactId: artifactId,
+        authorId: 1, // TODO: Replace with actual user ID
+      });
+      setNewArtifactComment(prev => ({ ...prev, [artifactId]: '' }));
+      loadArtifactComments(artifactId);
+    } catch (error) {
+      console.error('Failed to add artifact comment:', error);
+    }
+  };
+
+  const handleDeleteArtifactComment = async (commentId: number, artifactId: number) => {
+    if (!confirm('Удалить комментарий?')) return;
+    
+    try {
+      await commentsApi.delete(commentId, 1); // TODO: Replace with actual user ID
+      loadArtifactComments(artifactId);
+    } catch (error) {
+      console.error('Failed to delete artifact comment:', error);
+    }
+  };
+
+  const toggleArtifactComments = (artifactId: number) => {
+    setExpandedArtifacts(prev => ({
+      ...prev,
+      [artifactId]: !prev[artifactId]
+    }));
   };
 
   const handleApprove = async () => {
@@ -272,32 +328,108 @@ export default function TaskDetail() {
           {artifacts.length === 0 ? (
             <p className="text-gray-500 text-center py-8">Нет артефактов</p>
           ) : (
-            <div className="space-y-2">
-              {artifacts.map((artifact) => (
-                <div key={artifact.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
-                  <div className="flex-1">
-                    <a
-                      href={artifact.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-600 hover:text-primary-700 font-medium"
-                    >
-                      {artifact.name}
-                    </a>
-                    {artifact.uploadedByName && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Загрузил: {artifact.uploadedByName}
+            <div className="space-y-4">
+              {artifacts.map((artifact) => {
+                const comments = artifactComments[artifact.id] || [];
+                const isExpanded = expandedArtifacts[artifact.id];
+                
+                return (
+                  <div key={artifact.id} className="border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-gray-50">
+                      <div className="flex-1">
+                        <a
+                          href={artifact.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:text-primary-700 font-medium"
+                        >
+                          {artifact.name}
+                        </a>
+                        {artifact.uploadedByName && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Загрузил: {artifact.uploadedByName}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => toggleArtifactComments(artifact.id)}
+                          className="text-gray-600 hover:text-gray-700 flex items-center text-sm"
+                        >
+                          <MessageSquare className="w-4 h-4 mr-1" />
+                          {comments.length}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteArtifact(artifact.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="p-3 border-t border-gray-200 bg-white">
+                        <div className="mb-3">
+                          <div className="flex space-x-2">
+                            <input
+                              type="text"
+                              className="input flex-1 text-sm"
+                              placeholder="Добавить комментарий..."
+                              value={newArtifactComment[artifact.id] || ''}
+                              onChange={(e) => setNewArtifactComment(prev => ({
+                                ...prev,
+                                [artifact.id]: e.target.value
+                              }))}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddArtifactComment(artifact.id);
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={() => handleAddArtifactComment(artifact.id)}
+                              className="btn btn-primary btn-sm"
+                              disabled={!newArtifactComment[artifact.id]?.trim()}
+                            >
+                              <Send className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {comments.length === 0 ? (
+                          <p className="text-gray-500 text-sm text-center py-2">Нет комментариев</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {comments.map((comment) => (
+                              <div key={comment.id} className="p-2 bg-gray-50 rounded text-sm">
+                                <div className="flex justify-between items-start mb-1">
+                                  <div className="font-medium text-gray-900 text-xs">
+                                    {comment.authorName || 'Пользователь'}
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <div className="text-xs text-gray-500">
+                                      {new Date(comment.createdAt).toLocaleString('ru-RU')}
+                                    </div>
+                                    <button
+                                      onClick={() => handleDeleteArtifactComment(comment.id, artifact.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-gray-700">{comment.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleDeleteArtifact(artifact.id)}
-                    className="text-red-600 hover:text-red-700 ml-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

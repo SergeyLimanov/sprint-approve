@@ -21,8 +21,12 @@ public class Comment {
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id", nullable = false)
+    @JoinColumn(name = "task_id")
     private Task task;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "artifact_id")
+    private Artifact artifact;
 
     @Column(name = "author_id", nullable = false)
     private Long authorId;

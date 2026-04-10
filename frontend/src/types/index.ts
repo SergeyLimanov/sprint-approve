@@ -90,7 +90,8 @@ export interface Artifact {
 export interface Comment {
   id: number;
   content: string;
-  taskId: number;
+  taskId?: number;
+  artifactId?: number;
   authorId: number;
   authorName?: string;
   createdAt: string;

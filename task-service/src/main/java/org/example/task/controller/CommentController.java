@@ -25,6 +25,12 @@ public class CommentController {
         return ResponseEntity.ok(commentService.getCommentsByTaskId(taskId));
     }
 
+    @GetMapping("/artifact/{artifactId}")
+    @Operation(summary = "Get comments by artifact ID")
+    public ResponseEntity<List<CommentDto>> getCommentsByArtifactId(@PathVariable Long artifactId) {
+        return ResponseEntity.ok(commentService.getCommentsByArtifactId(artifactId));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get comment by ID")
     public ResponseEntity<CommentDto> getCommentById(@PathVariable Long id) {
