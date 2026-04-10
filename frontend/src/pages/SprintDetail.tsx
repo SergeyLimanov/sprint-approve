@@ -175,7 +175,11 @@ export default function SprintDetail() {
               const TaskStatusIcon = taskStatusBadge.icon;
               
               return (
-                <div key={task.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                <Link
+                  key={task.id}
+                  to={`/tasks/${task.id}`}
+                  className="block border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:border-primary-300 transition-colors"
+                >
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold text-gray-900">{task.title}</h3>
                     <span className={`badge ${taskStatusBadge.class} flex items-center`}>
@@ -194,7 +198,7 @@ export default function SprintDetail() {
                       <div>Аппрувер: {task.approverName}</div>
                     )}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

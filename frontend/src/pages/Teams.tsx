@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { teamsApi } from '../api/client';
 import type { Team } from '../types';
-import { Plus, Edit2, Trash2, Users } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Briefcase } from 'lucide-react';
 
 export default function Teams() {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -102,8 +103,17 @@ export default function Teams() {
             {team.description && (
               <p className="text-sm text-gray-600 mb-4">{team.description}</p>
             )}
-            <div className="text-xs text-gray-500">
-              Создана: {new Date(team.createdAt).toLocaleDateString('ru-RU')}
+            <div className="flex justify-between items-center">
+              <div className="text-xs text-gray-500">
+                Создана: {new Date(team.createdAt).toLocaleDateString('ru-RU')}
+              </div>
+              <Link
+                to={`/sprints?teamId=${team.id}`}
+                className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center"
+              >
+                <Briefcase className="w-4 h-4 mr-1" />
+                Спринты
+              </Link>
             </div>
           </div>
         ))}

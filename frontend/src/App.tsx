@@ -6,6 +6,7 @@ import Users from './pages/Users';
 import Sprints from './pages/Sprints';
 import SprintDetail from './pages/SprintDetail';
 import Tasks from './pages/Tasks';
+import TaskDetail from './pages/TaskDetail';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/sprints" element={<Sprints />} />
           <Route path="/sprints/:id" element={<SprintDetail />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/tasks/:id" element={<TaskDetail />} />
         </Routes>
       </Layout>
     </Router>

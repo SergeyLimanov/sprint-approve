@@ -1,19 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { sprintsApi, teamsApi, usersApi } from '../api/client';
 import type { Sprint, Team, User } from '../types';
 import { SprintType, SprintStatus } from '../types';
-import { Plus, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Calendar, CheckCircle, XCircle, Clock, ArrowLeft } from 'lucide-react';
 
 export default function Sprints() {
+  const [searchParams] = useSearchParams();
+  const teamIdParam = searchParams.get('teamId');
+  
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    teamId: '',
+    teamId: teamIdParam || '',
     type: SprintType.SPRINT,
     createdBy: '',
     startDate: '',
@@ -21,15 +25,35 @@ export default function Sprints() {
   });
 
   useEffect(() => {
-    loadSprints();
     loadTeams();
     loadUsers();
   }, []);
+
+  useEffect(() => {
+    if (teamIdParam) {
+      loadSprintsByTeam(Number(teamIdParam));
+    } else {
+      loadSprints();
+    }
+  }, [teamIdParam]);
 
   const loadSprints = async () => {
     try {
       const response = await sprintsApi.getAll();
       setSprints(response.data);
+    } catch (error) {
+      console.error('Failed to load sprints:', error);
+    }
+  };
+
+  const loadSprintsByTeam = async (teamId: number) => {
+    try {
+      const [sprintsRes, teamRes] = await Promise.all([
+        sprintsApi.getByTeam(teamId),
+        teamsApi.getById(teamId),
+      ]);
+      setSprints(sprintsRes.data);
+      setSelectedTeam(teamRes.data);
     } catch (error) {
       console.error('Failed to load sprints:', error);
     }
@@ -103,8 +127,22 @@ export default function Sprints() {
 
   return (
     <div>
+      {selectedTeam && (
+        <Link to="/teams" className="flex items-center text-primary-600 hover:text-primary-700 mb-4">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Назад к командам
+        </Link>
+      )}
+      
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Спринты</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {selectedTeam ? `Спринты команды "${selectedTeam.name}"` : 'Спринты'}
+          </h1>
+          {selectedTeam && selectedTeam.description && (
+            <p className="text-gray-600 mt-1">{selectedTeam.description}</p>
+          )}
+        </div>
         <button onClick={() => setIsModalOpen(true)} className="btn btn-primary flex items-center">
           <Plus className="w-5 h-5 mr-2" />
           Создать спринт
