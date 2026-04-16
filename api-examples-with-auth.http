@@ -1,0 +1,320 @@
+### Sprint Approve API Examples with Authentication
+
+### Variables
+@baseUrl = http://localhost:8080
+@accessToken = YOUR_ACCESS_TOKEN_HERE
+
+### ============================================
+### Authentication
+### ============================================
+
+### 1. Register new user
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "teamId": 1,
+  "role": "DEVELOPER"
+}
+
+### 2. Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+
+### 3. Refresh token
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+### 4. Validate token
+POST {{baseUrl}}/api/auth/validate?token={{accessToken}}
+
+### ============================================
+### Teams (Requires Authentication)
+### ============================================
+
+### Get all teams
+GET {{baseUrl}}/api/teams
+Authorization: Bearer {{accessToken}}
+
+### Get team by ID
+GET {{baseUrl}}/api/teams/1
+Authorization: Bearer {{accessToken}}
+
+### Create team
+POST {{baseUrl}}/api/teams
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Development Team",
+  "description": "Main development team"
+}
+
+### Update team
+PUT {{baseUrl}}/api/teams/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Team Name",
+  "description": "Updated description"
+}
+
+### Delete team
+DELETE {{baseUrl}}/api/teams/1
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### Users (Requires Authentication)
+### ============================================
+
+### Get all users
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{accessToken}}
+
+### Get user by ID
+GET {{baseUrl}}/api/users/1
+Authorization: Bearer {{accessToken}}
+
+### Get users by team
+GET {{baseUrl}}/api/users/team/1
+Authorization: Bearer {{accessToken}}
+
+### Create user (with password)
+POST {{baseUrl}}/api/users
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Jane Smith",
+  "email": "jane@example.com",
+  "password": "password123",
+  "teamId": 1,
+  "role": "DEVELOPER"
+}
+
+### Update user
+PUT {{baseUrl}}/api/users/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Jane Smith Updated",
+  "email": "jane.updated@example.com",
+  "teamId": 1,
+  "role": "TEAM_LEAD"
+}
+
+### Delete user
+DELETE {{baseUrl}}/api/users/1
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### Sprints (Requires Authentication)
+### ============================================
+
+### Get all sprints
+GET {{baseUrl}}/api/sprints
+Authorization: Bearer {{accessToken}}
+
+### Get sprint by ID
+GET {{baseUrl}}/api/sprints/1
+Authorization: Bearer {{accessToken}}
+
+### Get sprints by team
+GET {{baseUrl}}/api/sprints/team/1
+Authorization: Bearer {{accessToken}}
+
+### Get sprints by status
+GET {{baseUrl}}/api/sprints/status/CREATED
+Authorization: Bearer {{accessToken}}
+
+### Create sprint
+POST {{baseUrl}}/api/sprints
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Sprint 1",
+  "description": "First sprint",
+  "teamId": 1,
+  "type": "SPRINT",
+  "createdBy": 1,
+  "startDate": "2026-04-16",
+  "endDate": "2026-04-30"
+}
+
+### Update sprint
+PUT {{baseUrl}}/api/sprints/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Sprint 1 Updated",
+  "description": "Updated description",
+  "startDate": "2026-04-16",
+  "endDate": "2026-05-01"
+}
+
+### Submit sprint for review
+PATCH {{baseUrl}}/api/sprints/1/submit
+Authorization: Bearer {{accessToken}}
+
+### Approve sprint
+PATCH {{baseUrl}}/api/sprints/1/approve
+Authorization: Bearer {{accessToken}}
+
+### Reject sprint
+PATCH {{baseUrl}}/api/sprints/1/reject
+Authorization: Bearer {{accessToken}}
+
+### Recalculate sprint status
+PATCH {{baseUrl}}/api/sprints/1/recalculate-status
+Authorization: Bearer {{accessToken}}
+
+### Delete sprint
+DELETE {{baseUrl}}/api/sprints/1
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### Tasks (Requires Authentication)
+### ============================================
+
+### Get all tasks
+GET {{baseUrl}}/api/tasks
+Authorization: Bearer {{accessToken}}
+
+### Get task by ID
+GET {{baseUrl}}/api/tasks/1
+Authorization: Bearer {{accessToken}}
+
+### Get tasks by sprint
+GET {{baseUrl}}/api/tasks/sprint/1
+Authorization: Bearer {{accessToken}}
+
+### Get tasks by status
+GET {{baseUrl}}/api/tasks/status/CREATED
+Authorization: Bearer {{accessToken}}
+
+### Get tasks assigned to user
+GET {{baseUrl}}/api/tasks/assigned/1
+Authorization: Bearer {{accessToken}}
+
+### Create task
+POST {{baseUrl}}/api/tasks
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Implement feature X",
+  "description": "Detailed description",
+  "sprintId": 1,
+  "assignedTo": 1,
+  "approverId": 2,
+  "createdBy": 1
+}
+
+### Update task
+PUT {{baseUrl}}/api/tasks/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated task title",
+  "description": "Updated description",
+  "assignedTo": 1,
+  "approverId": 2
+}
+
+### Submit task for review
+PATCH {{baseUrl}}/api/tasks/1/submit
+Authorization: Bearer {{accessToken}}
+
+### Approve task
+PATCH {{baseUrl}}/api/tasks/1/approve?approverId=2
+Authorization: Bearer {{accessToken}}
+
+### Reject task
+PATCH {{baseUrl}}/api/tasks/1/reject?approverId=2
+Authorization: Bearer {{accessToken}}
+
+### Delete task
+DELETE {{baseUrl}}/api/tasks/1
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### Artifacts (Requires Authentication)
+### ============================================
+
+### Get artifacts by task
+GET {{baseUrl}}/api/artifacts/task/1
+Authorization: Bearer {{accessToken}}
+
+### Get artifact by ID
+GET {{baseUrl}}/api/artifacts/1
+Authorization: Bearer {{accessToken}}
+
+### Create artifact
+POST {{baseUrl}}/api/artifacts
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "taskId": 1,
+  "fileName": "document.pdf",
+  "fileUrl": "https://example.com/files/document.pdf",
+  "fileType": "PDF",
+  "uploadedBy": 1
+}
+
+### Delete artifact
+DELETE {{baseUrl}}/api/artifacts/1
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### Comments (Requires Authentication)
+### ============================================
+
+### Get comments by task
+GET {{baseUrl}}/api/comments/task/1
+Authorization: Bearer {{accessToken}}
+
+### Get comment by ID
+GET {{baseUrl}}/api/comments/1
+Authorization: Bearer {{accessToken}}
+
+### Create comment
+POST {{baseUrl}}/api/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "taskId": 1,
+  "content": "This is a comment",
+  "authorId": 1
+}
+
+### Update comment
+PUT {{baseUrl}}/api/comments/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "Updated comment content"
+}
+
+### Delete comment
+DELETE {{baseUrl}}/api/comments/1?authorId=1
+Authorization: Bearer {{accessToken}}

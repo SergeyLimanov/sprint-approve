@@ -23,6 +23,8 @@ public class UserDto {
     @NotBlank(message = "Name is required")
     private String name;
 
+    private String password; // Only for creation/update, not returned in responses
+
     private Long teamId;
     private String teamName;
 

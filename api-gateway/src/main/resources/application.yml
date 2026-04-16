@@ -8,12 +8,20 @@ spring:
           enabled: true
           lower-case-service-id: true
       routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+
         - id: team-service
           uri: lb://team-service
           predicates:
             - Path=/api/teams/**, /api/users/**
           filters:
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+            - JwtAuthenticationFilter
 
         - id: sprint-service
           uri: lb://sprint-service
@@ -21,6 +29,7 @@ spring:
             - Path=/api/sprints/**
           filters:
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+            - JwtAuthenticationFilter
 
         - id: task-service
           uri: lb://task-service
@@ -28,6 +37,7 @@ spring:
             - Path=/api/tasks/**, /api/artifacts/**, /api/comments/**
           filters:
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+            - JwtAuthenticationFilter
 
 server:
   port: 8080
@@ -40,6 +50,9 @@ eureka:
     register-with-eureka: true
   instance:
     prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET:sprint-approve-secret-key-change-this-in-production-minimum-256-bits-required-for-hs256-algorithm}
 
 logging:
   level:

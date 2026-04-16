@@ -37,6 +37,12 @@ public class UserController {
         return ResponseEntity.ok(userService.getUsersByTeamId(teamId));
     }
 
+    @GetMapping("/email/{email}")
+    @Operation(summary = "Get user by email (for authentication)")
+    public ResponseEntity<UserDto> getUserByEmail(@PathVariable String email) {
+        return ResponseEntity.ok(userService.getUserByEmail(email));
+    }
+
     @PostMapping
     @Operation(summary = "Create new user")
     public ResponseEntity<UserDto> createUser(@Valid @RequestBody UserDto userDto) {

@@ -14,6 +14,57 @@ All notable changes to this project will be documented in this file.
 - **security-common** - Общая библиотека для работы с Security Context
   - SecurityContext для доступа к информации о пользователе
   - SecurityFilter для извлечения данных из заголовков
+
+#### Enhanced Components
+- **api-gateway** - Добавлена JWT аутентификация
+  - JwtAuthenticationFilter для проверки токенов
+  - Автоматическое добавление заголовков X-User-Id, X-User-Email, X-User-Role
+  - Защита всех endpoints (кроме /api/auth/**)
+- **team-service** - Добавлена поддержка паролей
+  - Поле password в User entity
+  - Endpoint GET /api/users/email/{email} для аутентификации
+- **All microservices** - Интеграция с security-common
+
+#### Documentation
+- **SECURITY.md** - Полная документация по безопасности
+- **MIGRATION_GUIDE.md** - Руководство по миграции
+- **api-examples-with-auth.http** - Примеры API запросов с аутентификацией
+- **migration.sql** - SQL скрипт для миграции БД
+
+### ⚠️ Breaking Changes
+- Все API endpoints (кроме /api/auth/**) теперь требуют JWT аутентификацию
+- User entity требует поле password
+- Необходима миграция БД для существующих пользователей
+
+### 📝 Migration Required
+См. [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) для инструкций по миграции.
+
+---
+
+## [1.1.0] - 2026-04-16
+
+### ✨ Features
+
+#### Auto Status Synchronization
+- **sprint-service** - Автоматический пересчет статуса спринта
+  - Метод `recalculateSprintStatus()` для пересчета на основе задач
+  - Endpoint PATCH /api/sprints/{id}/recalculate-status
+  - Логика приоритетов: APPROVED > REJECTED > ON_REVIEW > CREATED
+- **task-service** - Автоматический вызов пересчета при изменении задач
+  - Пересчет при создании, обновлении, удалении задачи
+  - Пересчет при изменении статуса (submit, approve, reject)
+
+#### Documentation
+- **AUTO_STATUS_SYNC.md** - Документация по автосинхронизации
+- **TESTING_AUTO_SYNC.md** - Инструкции по тестированию
+
+### 🐛 Bug Fixes
+- Исправлена проблема с несинхронизированными статусами спринтов и задач
+
+---
+
+## [1.0.0] - Initial Release
+
 ### Добавлено
 
 #### Инфраструктура
@@ -21,7 +72,6 @@ All notable changes to this project will be documented in this file.
 - Добавлен Eureka Server для service discovery
 - Добавлен API Gateway для маршрутизации запросов
 - Настроен Docker Compose для PostgreSQL баз данных
-- Добавлены GitHub Actions для CI/CD
 
 #### Team Service
 - CRUD операции для команд
@@ -36,7 +86,6 @@ All notable changes to this project will be documented in this file.
 - Статусы: CREATED, ON_REVIEW, APPROVED, REJECTED
 - Интеграция с Team Service через Feign
 - Интеграция с Task Service для проверки задач
-- Автоматическое одобрение спринта при одобрении всех задач
 - Фильтрация по команде и статусу
 
 #### Task Service
@@ -46,7 +95,6 @@ All notable changes to this project will be documented in this file.
 - Статусы задач: CREATED, ON_REVIEW, APPROVED, REJECTED
 - Назначение исполнителей и аппруверов
 - Интеграция с Team Service для получения информации о пользователях
-- Интеграция с Sprint Service для автоматического обновления статуса спринта
 - Фильтрация задач по спринту, статусу, исполнителю
 
 #### Документация
@@ -54,12 +102,10 @@ All notable changes to this project will be documented in this file.
 - ARCHITECTURE.md с описанием архитектуры
 - DEVELOPMENT.md с руководством по разработке
 - USAGE_EXAMPLES.md с примерами использования
-- QUICKSTART.md для быстрого старта
 - api-examples.http с примерами API запросов
 
 #### Утилиты
 - Скрипты start-all.bat и stop-all.bat для Windows
-- Файл .env.example с примерами переменных окружения
 - Swagger UI для всех микросервисов
 
 ### Технологии
@@ -73,47 +119,3 @@ All notable changes to this project will be documented in this file.
 - OpenFeign
 - Lombok
 - Springdoc OpenAPI
-
-## [Unreleased]
-
-### Планируется
-
-#### Безопасность
-- Добавить Spring Security
-- Реализовать JWT аутентификацию
-- Настроить HTTPS
-- Добавить rate limiting
-
-#### Функциональность
-- Сервис уведомлений (email, push)
-- Сервис аналитики и отчетности
-- Интеграция с S3 для хранения файлов
-- Поддержка вложенных комментариев
-- История изменений задач
-- Теги и метки для задач
-- Поиск по задачам и спринтам
-
-#### Улучшения
-- Event-Driven Architecture с Kafka
-- Circuit Breaker с Resilience4j
-- Distributed tracing с Sleuth и Zipkin
-- Централизованное логирование с ELK Stack
-- Мониторинг с Prometheus и Grafana
-- Кеширование с Redis
-
-#### Тестирование
-- Unit тесты для всех сервисов
-- Integration тесты
-- E2E тесты
-- Performance тесты
-
----
-
-## Типы изменений
-
-- **Добавлено** - для новой функциональности
-- **Изменено** - для изменений в существующей функциональности
-- **Устарело** - для функциональности, которая скоро будет удалена
-- **Удалено** - для удаленной функциональности
-- **Исправлено** - для исправления ошибок
-- **Безопасность** - для изменений, связанных с безопасностью

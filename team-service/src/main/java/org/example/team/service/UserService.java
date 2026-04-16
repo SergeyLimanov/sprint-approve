@@ -39,6 +39,15 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public UserDto getUserByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        UserDto dto = convertToDto(user);
+        dto.setPassword(user.getPassword()); // Include password for authentication
+        return dto;
+    }
+
     @Transactional
     public UserDto createUser(UserDto userDto) {
         if (userRepository.existsByEmail(userDto.getEmail())) {
@@ -49,6 +58,14 @@ public class UserService {
         user.setEmail(userDto.getEmail());
         user.setName(userDto.getName());
         user.setRole(userDto.getRole());
+        
+        // Set password (should be hashed by auth-service before calling this)
+        if (userDto.getPassword() != null) {
+            user.setPassword(userDto.getPassword());
+        } else {
+            // Default password if not provided (for backward compatibility)
+            user.setPassword("changeme");
+        }
 
         if (userDto.getTeamId() != null) {
             Team team = teamRepository.findById(userDto.getTeamId())

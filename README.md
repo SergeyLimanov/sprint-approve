@@ -11,14 +11,21 @@ Service Discovery сервер для регистрации и обнаруже
 
 ### 2. **api-gateway** (порт 8080)
 Единая точка входа для всех API запросов. Маршрутизирует запросы к соответствующим микросервисам.
+**Выполняет JWT аутентификацию для всех защищенных endpoints.**
 
-### 3. **team-service** (порт 8081)
+### 3. **auth-service** (порт 8084)
+Сервис аутентификации и авторизации:
+- Регистрация и вход пользователей
+- Выдача JWT токенов (access и refresh)
+- Валидация токенов
+
+### 4. **team-service** (порт 8081)
 Управление командами и пользователями:
 - Создание, редактирование, удаление команд
 - Управление пользователями
 - Назначение ролей (TEAM_LEAD, DEVELOPER, MANAGER, APPROVER)
 
-### 4. **sprint-service** (порт 8082)
+### 5. **sprint-service** (порт 8082)
 Управление спринтами и МВП:
 - Создание спринтов/МВП
 - Управление статусами (CREATED, ON_REVIEW, APPROVED, REJECTED)
@@ -28,7 +35,7 @@ Service Discovery сервер для регистрации и обнаруже
   - Есть ON_REVIEW задачи → спринт ON_REVIEW
   - Только CREATED задачи → спринт CREATED
 
-### 5. **task-service** (порт 8083)
+### 6. **task-service** (порт 8083)
 Управление задачами, артефактами и комментариями:
 - Создание и управление задачами
 - Прикрепление артефактов к задачам
@@ -40,10 +47,13 @@ Service Discovery сервер для регистрации и обнаруже
 - **Java 17**
 - **Spring Boot 3.2.0**
 - **Spring Cloud 2023.0.0**
+- **Spring Security** (аутентификация и авторизация)
+- **JWT (JJWT 0.12.3)** (токены доступа)
+- **BCrypt** (хеширование паролей)
 - **Spring Data JPA**
 - **PostgreSQL** (3 отдельные БД для каждого сервиса)
 - **Netflix Eureka** (Service Discovery)
-- **Spring Cloud Gateway** (API Gateway)
+- **Spring Cloud Gateway** (API Gateway с JWT фильтром)
 - **OpenFeign** (межсервисное взаимодействие)
 - **Lombok**
 - **Swagger/OpenAPI** (документация API)
@@ -84,25 +94,31 @@ mvn spring-boot:run
 ```
 Откройте http://localhost:8761 для просмотра Eureka Dashboard.
 
-#### 3.2. Team Service
+#### 3.2. Auth Service
+```bash
+cd auth-service
+mvn spring-boot:run
+```
+
+#### 3.3. Team Service
 ```bash
 cd team-service
 mvn spring-boot:run
 ```
 
-#### 3.3. Sprint Service
+#### 3.4. Sprint Service
 ```bash
 cd sprint-service
 mvn spring-boot:run
 ```
 
-#### 3.4. Task Service
+#### 3.5. Task Service
 ```bash
 cd task-service
 mvn spring-boot:run
 ```
 
-#### 3.5. API Gateway
+#### 3.6. API Gateway
 ```bash
 cd api-gateway
 mvn spring-boot:run
@@ -121,6 +137,15 @@ mvn spring-boot:run
 ## API Endpoints
 
 Все запросы идут через API Gateway на порт **8080**.
+
+⚠️ **Большинство endpoints требуют JWT аутентификации!** См. [SECURITY.md](SECURITY.md)
+
+### Auth Service
+
+- `POST /api/auth/register` - Регистрация нового пользователя
+- `POST /api/auth/login` - Вход пользователя
+- `POST /api/auth/refresh` - Обновление access token
+- `POST /api/auth/validate` - Проверка токена
 
 ### Team Service
 
@@ -185,9 +210,37 @@ mvn spring-boot:run
 
 Каждый микросервис имеет свою Swagger документацию:
 
+- Auth Service: http://localhost:8084/swagger-ui.html
 - Team Service: http://localhost:8081/swagger-ui.html
 - Sprint Service: http://localhost:8082/swagger-ui.html
 - Task Service: http://localhost:8083/swagger-ui.html
+
+## Безопасность
+
+Система использует JWT аутентификацию и role-based авторизацию.
+
+**Подробная документация:** [SECURITY.md](SECURITY.md)
+
+### Быстрый старт с аутентификацией
+
+1. **Зарегистрируйте пользователя:**
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "password123",
+    "teamId": 1,
+    "role": "DEVELOPER"
+  }'
+```
+
+2. **Используйте полученный токен:**
+```bash
+curl -X GET http://localhost:8080/api/sprints \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
 
 ## Бизнес-логика
 
@@ -217,13 +270,17 @@ mvn spring-boot:run
 ```
 sprint-approve/
 ├── eureka-server/          # Service Discovery
-├── api-gateway/            # API Gateway
+├── api-gateway/            # API Gateway с JWT фильтром
+├── auth-service/           # Аутентификация и авторизация
+├── security-common/        # Общая библиотека безопасности
 ├── team-service/           # Управление командами и пользователями
 ├── sprint-service/         # Управление спринтами
 ├── task-service/           # Управление задачами, артефактами, комментариями
 ├── docker-compose.yml      # Конфигурация БД
 ├── pom.xml                 # Родительский POM
-└── README.md
+├── README.md               # Основная документация
+├── SECURITY.md             # Документация по безопасности
+└── AUTO_STATUS_SYNC.md     # Документация по автосинхронизации
 ```
 
 ## Остановка проекта

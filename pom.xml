@@ -20,6 +20,8 @@
 
     <modules>
         <module>eureka-server</module>
+        <module>security-common</module>
+        <module>auth-service</module>
         <module>team-service</module>
         <module>sprint-service</module>
         <module>task-service</module>
