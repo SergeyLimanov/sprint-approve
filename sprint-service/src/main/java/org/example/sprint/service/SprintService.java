@@ -148,6 +148,64 @@ public class SprintService {
         sprintRepository.deleteById(id);
     }
 
+    @Transactional
+    public SprintDto recalculateSprintStatus(Long id) {
+        Sprint sprint = sprintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
+
+        try {
+            List<TaskDto> tasks = taskServiceClient.getTasksBySprintId(id);
+            
+            if (tasks.isEmpty()) {
+                // Если нет задач, спринт остается в текущем статусе или возвращается в CREATED
+                if (sprint.getStatus() == SprintStatus.APPROVED || sprint.getStatus() == SprintStatus.REJECTED) {
+                    sprint.setStatus(SprintStatus.CREATED);
+                    log.info("Sprint {} status changed to CREATED - no tasks", id);
+                }
+            } else {
+                // Проверяем статусы задач
+                boolean allApproved = tasks.stream()
+                        .allMatch(task -> "APPROVED".equals(task.getStatus()));
+                boolean anyRejected = tasks.stream()
+                        .anyMatch(task -> "REJECTED".equals(task.getStatus()));
+                boolean anyOnReview = tasks.stream()
+                        .anyMatch(task -> "ON_REVIEW".equals(task.getStatus()));
+                boolean anyCreated = tasks.stream()
+                        .anyMatch(task -> "CREATED".equals(task.getStatus()));
+
+                SprintStatus newStatus = null;
+                
+                if (allApproved) {
+                    // Все задачи одобрены -> спринт одобрен
+                    newStatus = SprintStatus.APPROVED;
+                } else if (anyRejected) {
+                    // Есть отклоненные задачи -> спринт отклонен
+                    newStatus = SprintStatus.REJECTED;
+                } else if (anyOnReview) {
+                    // Есть задачи на рассмотрении -> спринт на рассмотрении
+                    newStatus = SprintStatus.ON_REVIEW;
+                } else if (anyCreated) {
+                    // Есть только созданные задачи -> спринт создан
+                    newStatus = SprintStatus.CREATED;
+                }
+
+                if (newStatus != null && sprint.getStatus() != newStatus) {
+                    SprintStatus oldStatus = sprint.getStatus();
+                    sprint.setStatus(newStatus);
+                    log.info("Sprint {} status automatically changed from {} to {}", 
+                            id, oldStatus, newStatus);
+                }
+            }
+            
+            Sprint updatedSprint = sprintRepository.save(sprint);
+            return convertToDto(updatedSprint);
+            
+        } catch (Exception e) {
+            log.error("Failed to recalculate sprint {} status: {}", id, e.getMessage());
+            throw new RuntimeException("Failed to recalculate sprint status", e);
+        }
+    }
+
     private SprintDto convertToDto(Sprint sprint) {
         SprintDto dto = new SprintDto();
         dto.setId(sprint.getId());

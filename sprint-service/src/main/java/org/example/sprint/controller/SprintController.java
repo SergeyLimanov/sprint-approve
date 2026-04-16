@@ -80,4 +80,10 @@ public class SprintController {
         sprintService.deleteSprint(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/recalculate-status")
+    @Operation(summary = "Recalculate sprint status based on tasks")
+    public ResponseEntity<SprintDto> recalculateSprintStatus(@PathVariable Long id) {
+        return ResponseEntity.ok(sprintService.recalculateSprintStatus(id));
+    }
 }

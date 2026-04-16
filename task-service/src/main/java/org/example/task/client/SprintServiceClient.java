@@ -13,4 +13,7 @@ public interface SprintServiceClient {
     
     @PatchMapping("/api/sprints/{id}/approve")
     SprintDto approveSprint(@PathVariable Long id);
+    
+    @PatchMapping("/api/sprints/{id}/recalculate-status")
+    SprintDto recalculateSprintStatus(@PathVariable Long id);
 }

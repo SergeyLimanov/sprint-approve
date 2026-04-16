@@ -70,6 +70,10 @@ public class TaskService {
         task.setCreatedBy(taskDto.getCreatedBy());
 
         Task savedTask = taskRepository.save(task);
+        
+        // Recalculate sprint status
+        recalculateSprintStatus(savedTask.getSprintId());
+        
         return convertToDto(savedTask);
     }
 
@@ -98,6 +102,10 @@ public class TaskService {
 
         task.setStatus(TaskStatus.ON_REVIEW);
         Task updatedTask = taskRepository.save(task);
+        
+        // Recalculate sprint status
+        recalculateSprintStatus(task.getSprintId());
+        
         return convertToDto(updatedTask);
     }
 
@@ -113,8 +121,8 @@ public class TaskService {
         task.setStatus(TaskStatus.APPROVED);
         Task updatedTask = taskRepository.save(task);
 
-        // Check if all tasks in sprint are approved
-        checkAndUpdateSprintStatus(task.getSprintId());
+        // Recalculate sprint status
+        recalculateSprintStatus(task.getSprintId());
 
         return convertToDto(updatedTask);
     }
@@ -130,29 +138,35 @@ public class TaskService {
 
         task.setStatus(TaskStatus.REJECTED);
         Task updatedTask = taskRepository.save(task);
+        
+        // Recalculate sprint status
+        recalculateSprintStatus(task.getSprintId());
+        
         return convertToDto(updatedTask);
     }
 
     @Transactional
     public void deleteTask(Long id) {
-        if (!taskRepository.existsById(id)) {
-            throw new RuntimeException("Task not found with id: " + id);
-        }
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+        
+        Long sprintId = task.getSprintId();
         taskRepository.deleteById(id);
+        
+        // Recalculate sprint status after task deletion
+        recalculateSprintStatus(sprintId);
     }
 
-    private void checkAndUpdateSprintStatus(Long sprintId) {
-        List<Task> tasks = taskRepository.findBySprintId(sprintId);
-        boolean allApproved = tasks.stream()
-                .allMatch(task -> task.getStatus() == TaskStatus.APPROVED);
-
-        if (allApproved && !tasks.isEmpty()) {
-            try {
-                sprintServiceClient.approveSprint(sprintId);
-                log.info("Sprint {} automatically approved - all tasks are approved", sprintId);
-            } catch (Exception e) {
-                log.error("Failed to auto-approve sprint {}: {}", sprintId, e.getMessage());
-            }
+    private void recalculateSprintStatus(Long sprintId) {
+        if (sprintId == null) {
+            return;
+        }
+        
+        try {
+            sprintServiceClient.recalculateSprintStatus(sprintId);
+            log.info("Sprint {} status recalculated based on tasks", sprintId);
+        } catch (Exception e) {
+            log.error("Failed to recalculate sprint {} status: {}", sprintId, e.getMessage());
         }
     }
 
