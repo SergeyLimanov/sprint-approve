@@ -17,7 +17,9 @@ public class ArtifactDto {
     @NotBlank(message = "Artifact name is required")
     private String name;
 
-    private String url; // Optional - can be null for uploaded files
+    private String url; // Имя файла в MinIO или внешний URL
+
+    private String downloadUrl; // Временная ссылка для скачивания (presigned URL)
 
     private String fileType;
     private Long fileSize;
