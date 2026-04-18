@@ -67,11 +67,27 @@ services:
       timeout: 20s
       retries: 3
 
+  # PostgreSQL для notification-service
+  notification-db:
+    image: postgres:15-alpine
+    container_name: notification-db
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    networks:
+      - sprint-approve-network
+
 volumes:
   team-db-data:
   sprint-db-data:
   task-db-data:
   minio-data:
+  notification-db-data:
 
 networks:
   sprint-approve-network:

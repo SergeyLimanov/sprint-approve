@@ -25,6 +25,7 @@
         <module>team-service</module>
         <module>sprint-service</module>
         <module>task-service</module>
+        <module>notification-service</module>
         <module>api-gateway</module>
     </modules>
 
