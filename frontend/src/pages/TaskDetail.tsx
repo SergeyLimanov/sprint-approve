@@ -28,6 +28,9 @@ export default function TaskDetail() {
   const [history, setHistory] = useState<TaskHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [reviewComment, setReviewComment] = useState('');
+  
+  const userRole = localStorage.getItem('userRole') || '';
+  const canApprove = userRole === 'APPROVER';
 
   useEffect(() => {
     if (id) {
@@ -411,7 +414,7 @@ export default function TaskDetail() {
           </div>
         )}
 
-        {task.status === TaskStatus.ON_REVIEW && (
+        {task.status === TaskStatus.ON_REVIEW && canApprove && (
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -435,6 +438,14 @@ export default function TaskDetail() {
                 Отклонить
               </button>
             </div>
+          </div>
+        )}
+
+        {task.status === TaskStatus.ON_REVIEW && !canApprove && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              ℹ️ Задача находится на рассмотрении. Только пользователи с ролью APPROVER могут одобрить или отклонить задачу.
+            </p>
           </div>
         )}
 
