@@ -19,6 +19,16 @@ jwt:
   expiration: 86400000  # 24 hours in milliseconds
   refresh-expiration: 604800000  # 7 days in milliseconds
 
+# Feign client configuration
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 10000  # 10 seconds
+        readTimeout: 10000     # 10 seconds
+        loggerLevel: full
+
 logging:
   level:
     org.example.auth: DEBUG
+    org.example.auth.client: DEBUG
