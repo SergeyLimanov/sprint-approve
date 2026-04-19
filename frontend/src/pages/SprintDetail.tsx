@@ -98,7 +98,7 @@ export default function SprintDetail() {
   const handleEditClick = () => {
     if (!sprint) return;
     setEditForm({
-      title: sprint.title,
+      title: sprint.name || '',
       description: sprint.description || '',
       startDate: sprint.startDate ? sprint.startDate.split('T')[0] : '',
       endDate: sprint.endDate ? sprint.endDate.split('T')[0] : '',
@@ -112,7 +112,7 @@ export default function SprintDetail() {
 
     try {
       await sprintsApi.update(sprint.id, {
-        title: editForm.title,
+        name: editForm.title,
         description: editForm.description,
         startDate: editForm.startDate || undefined,
         endDate: editForm.endDate || undefined,
@@ -159,7 +159,7 @@ export default function SprintDetail() {
       <div className="card mb-6">
         <div className="flex justify-between items-start mb-6">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{sprint.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{sprint.name}</h1>
             <p className="text-gray-600">{sprint.teamName}</p>
           </div>
           <div className="flex items-center space-x-3">
