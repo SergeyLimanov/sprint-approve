@@ -2,6 +2,10 @@ package org.example.notification.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.notification.client.EmailNotificationRequest;
+import org.example.notification.client.EmailServiceClient;
+import org.example.notification.client.UserDto;
+import org.example.notification.client.UserServiceClient;
 import org.example.notification.dto.NotificationDto;
 import org.example.notification.entity.Notification;
 import org.example.notification.repository.NotificationRepository;
@@ -16,6 +20,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class NotificationService {
     private final NotificationRepository notificationRepository;
+    private final UserServiceClient userServiceClient;
+    private final EmailServiceClient emailServiceClient;
 
     @Transactional(readOnly = true)
     public List<NotificationDto> getUserNotifications(Long userId) {
@@ -47,7 +53,36 @@ public class NotificationService {
 
         Notification saved = notificationRepository.save(notification);
         log.info("Created notification for user {}: {}", dto.getUserId(), dto.getMessage());
+        
+        // Send email notification
+        sendEmailNotification(saved);
+        
         return convertToDto(saved);
+    }
+    
+    private void sendEmailNotification(Notification notification) {
+        try {
+            // Fetch user details
+            UserDto user = userServiceClient.getUserById(notification.getUserId());
+            
+            if (user.getEmail() == null || user.getEmail().isEmpty()) {
+                log.warn("User {} has no email, skipping email notification", notification.getUserId());
+                return;
+            }
+            
+            EmailNotificationRequest emailRequest = new EmailNotificationRequest();
+            emailRequest.setUserEmail(user.getEmail());
+            emailRequest.setUserName(user.getName());
+            emailRequest.setMessage(notification.getMessage());
+            emailRequest.setType(notification.getType());
+            emailRequest.setTaskId(notification.getRelatedEntityId());
+            
+            emailServiceClient.sendNotificationEmail(emailRequest);
+            log.info("Email notification sent to {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send email notification: {}", e.getMessage());
+            // Don't fail the notification creation if email fails
+        }
     }
 
     @Transactional

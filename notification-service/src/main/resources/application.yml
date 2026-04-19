@@ -1,6 +1,13 @@
 spring:
   application:
     name: notification-service
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 5000
   datasource:
     url: jdbc:postgresql://localhost:5435/notification_db
     username: postgres
@@ -37,3 +44,8 @@ springdoc:
 # Firebase Configuration
 firebase:
   service-account-file: classpath:firebase-service-account.json
+
+# Email Service Configuration
+email:
+  service:
+    url: http://localhost:3001
