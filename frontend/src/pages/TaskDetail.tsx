@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { tasksApi, artifactsApi, commentsApi } from '../api/client';
-import type { Task, Artifact, Comment } from '../types';
+import { tasksApi, artifactsApi, commentsApi, usersApi } from '../api/client';
+import type { Task, Artifact, Comment, User } from '../types';
 import { TaskStatus } from '../types';
-import { ArrowLeft, CheckCircle, XCircle, Clock, Send, FileText, MessageSquare, Upload, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Clock, Send, FileText, MessageSquare, Upload, Trash2, Edit } from 'lucide-react';
 
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +17,14 @@ export default function TaskDetail() {
   const [showArtifactForm, setShowArtifactForm] = useState(false);
   const [expandedArtifacts, setExpandedArtifacts] = useState<Record<number, boolean>>({});
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    assignedTo: '',
+    approverId: '',
+  });
 
   useEffect(() => {
     if (id) {
@@ -24,6 +32,7 @@ export default function TaskDetail() {
       loadArtifacts(Number(id));
       loadComments(Number(id));
     }
+    loadUsers();
   }, [id]);
 
   const loadTask = async (taskId: number) => {
@@ -199,6 +208,45 @@ export default function TaskDetail() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const response = await usersApi.getAll();
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    }
+  };
+
+  const handleEditClick = () => {
+    if (!task) return;
+    setEditForm({
+      title: task.title,
+      description: task.description || '',
+      assignedTo: task.assignedTo?.toString() || '',
+      approverId: task.approverId?.toString() || '',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!task) return;
+
+    try {
+      await tasksApi.update(task.id, {
+        title: editForm.title,
+        description: editForm.description,
+        assignedTo: editForm.assignedTo ? Number(editForm.assignedTo) : undefined,
+        approverId: editForm.approverId ? Number(editForm.approverId) : undefined,
+      });
+      setIsEditModalOpen(false);
+      loadTask(task.id);
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      alert('Ошибка при обновлении задачи');
+    }
+  };
+
   const toggleArtifactComments = (artifactId: number) => {
     setExpandedArtifacts(prev => ({
       ...prev,
@@ -281,6 +329,13 @@ export default function TaskDetail() {
               {statusBadge.label}
             </span>
           </div>
+          <button
+            onClick={handleEditClick}
+            className="btn btn-secondary flex items-center"
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Редактировать
+          </button>
         </div>
 
         {task.description && (
@@ -587,6 +642,90 @@ export default function TaskDetail() {
           )}
         </div>
       </div>
+
+      {/* Edit Task Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">Редактировать задачу</h2>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Название *
+                </label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Описание
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="input"
+                  rows={4}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Исполнитель
+                </label>
+                <select
+                  value={editForm.assignedTo}
+                  onChange={(e) => setEditForm({ ...editForm, assignedTo: e.target.value })}
+                  className="input"
+                >
+                  <option value="">Не назначен</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Аппрувер
+                </label>
+                <select
+                  value={editForm.approverId}
+                  onChange={(e) => setEditForm({ ...editForm, approverId: e.target.value })}
+                  className="input"
+                >
+                  <option value="">Не назначен</option>
+                  {users.filter(u => ['APPROVER', 'TEAM_LEAD', 'MANAGER'].includes(u.role)).map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="btn btn-secondary"
+                >
+                  Отмена
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Сохранить
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

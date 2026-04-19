@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { sprintsApi, tasksApi, usersApi } from '../api/client';
 import type { Sprint, Task, User } from '../types';
 import { TaskStatus, SprintStatus } from '../types';
-import { ArrowLeft, CheckCircle, XCircle, Clock, Plus } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Clock, Plus, Edit } from 'lucide-react';
 
 export default function SprintDetail() {
   const { id } = useParams<{ id: string }>();
@@ -11,11 +11,18 @@ export default function SprintDetail() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     assignedTo: '',
     approverId: '',
+  });
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    startDate: '',
+    endDate: '',
   });
 
   useEffect(() => {
@@ -88,6 +95,36 @@ export default function SprintDetail() {
     }
   };
 
+  const handleEditClick = () => {
+    if (!sprint) return;
+    setEditForm({
+      title: sprint.title,
+      description: sprint.description || '',
+      startDate: sprint.startDate ? sprint.startDate.split('T')[0] : '',
+      endDate: sprint.endDate ? sprint.endDate.split('T')[0] : '',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sprint) return;
+
+    try {
+      await sprintsApi.update(sprint.id, {
+        title: editForm.title,
+        description: editForm.description,
+        startDate: editForm.startDate || undefined,
+        endDate: editForm.endDate || undefined,
+      });
+      setIsEditModalOpen(false);
+      loadSprint(sprint.id);
+    } catch (error) {
+      console.error('Failed to update sprint:', error);
+      alert('Ошибка при обновлении спринта');
+    }
+  };
+
   const getStatusBadge = (status: TaskStatus | SprintStatus) => {
     const badges = {
       CREATED: { class: 'badge-created', icon: Clock, label: 'Создан' },
@@ -121,14 +158,23 @@ export default function SprintDetail() {
 
       <div className="card mb-6">
         <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{sprint.name}</h1>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{sprint.title}</h1>
             <p className="text-gray-600">{sprint.teamName}</p>
           </div>
-          <span className={`badge ${statusBadge.class} flex items-center text-base px-4 py-2`}>
-            <StatusIcon className="w-4 h-4 mr-2" />
-            {statusBadge.label}
-          </span>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleEditClick}
+              className="btn btn-secondary flex items-center"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Редактировать
+            </button>
+            <span className={`badge ${statusBadge.class} flex items-center text-base px-4 py-2`}>
+              <StatusIcon className="w-4 h-4 mr-2" />
+              {statusBadge.label}
+            </span>
+          </div>
         </div>
 
         {sprint.description && (
@@ -311,6 +357,80 @@ export default function SprintDetail() {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   Создать
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Sprint Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h2 className="text-2xl font-bold mb-4">Редактировать спринт</h2>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Название *
+                </label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Описание
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="input"
+                  rows={4}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Дата начала
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.startDate}
+                    onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Дата окончания
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.endDate}
+                    onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="btn btn-secondary"
+                >
+                  Отмена
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Сохранить
                 </button>
               </div>
             </form>
