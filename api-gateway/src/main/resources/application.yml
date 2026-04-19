@@ -39,6 +39,14 @@ spring:
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
             - JwtAuthenticationFilter
 
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+            - JwtAuthenticationFilter
+
 server:
   port: 8080
 
