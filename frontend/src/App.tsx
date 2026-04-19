@@ -7,22 +7,49 @@ import Sprints from './pages/Sprints';
 import SprintDetail from './pages/SprintDetail';
 import Tasks from './pages/Tasks';
 import TaskDetail from './pages/TaskDetail';
+import Login from './pages/Login';
+import Register from './pages/Register';
+
+// Компонент для защиты маршрутов
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('accessToken');
+  
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+}
 
 function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/teams" element={<Teams />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/sprints" element={<Sprints />} />
-          <Route path="/sprints/:id" element={<SprintDetail />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/tasks/:id" element={<TaskDetail />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        {/* Публичные маршруты */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        {/* Защищённые маршруты */}
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/users" element={<Users />} />
+                  <Route path="/sprints" element={<Sprints />} />
+                  <Route path="/sprints/:id" element={<SprintDetail />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/tasks/:id" element={<TaskDetail />} />
+                </Routes>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
     </Router>
   );
 }
