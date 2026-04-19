@@ -93,6 +93,7 @@ export const artifactsApi = {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+  }),
   delete: (id: number) => api.delete(`/artifacts/${id}`),
 };
 
