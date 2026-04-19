@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Users, Briefcase, CheckSquare, Layers, LogOut, User, Bell } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { notificationsApi } from '../api/client';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,18 +10,37 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const userName = localStorage.getItem('userName') || 'User';
   const userRole = localStorage.getItem('userRole') || 'DEVELOPER';
+  const userId = localStorage.getItem('userId');
 
-  const navigation = [
+  const navigation: Array<{ name: string; href: string; icon: any; badge?: number }> = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Команды', href: '/teams', icon: Layers },
     { name: 'Пользователи', href: '/users', icon: Users },
     { name: 'Спринты', href: '/sprints', icon: Briefcase },
     { name: 'Задачи', href: '/tasks', icon: CheckSquare },
-    { name: 'Уведомления', href: '/notifications', icon: Bell },
+    { name: 'Уведомления', href: '/notifications', icon: Bell, badge: unreadCount },
   ];
+
+  useEffect(() => {
+    loadUnreadCount();
+    // Обновляем счётчик каждые 30 секунд
+    const interval = setInterval(loadUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [userId]);
+
+  const loadUnreadCount = async () => {
+    if (!userId) return;
+    try {
+      const response = await notificationsApi.getUnreadCount(Number(userId));
+      setUnreadCount(response.data);
+    } catch (error) {
+      console.error('Failed to load unread count:', error);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -46,14 +67,21 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                     isActive
                       ? 'bg-primary-50 text-primary-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  <Icon className="w-5 h-5 mr-3" />
-                  {item.name}
+                  <div className="flex items-center">
+                    <Icon className="w-5 h-5 mr-3" />
+                    {item.name}
+                  </div>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

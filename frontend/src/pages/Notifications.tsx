@@ -102,9 +102,14 @@ export default function Notifications() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-3 flex-1">
-                    <span className="text-2xl">{getNotificationIcon(notification.type)}</span>
+                    <div className="relative">
+                      <span className="text-2xl">{getNotificationIcon(notification.type)}</span>
+                      {!notification.isRead && (
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                      )}
+                    </div>
                     <div className="flex-1">
-                      <p className={`${notification.isRead ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>
+                      <p className={`${notification.isRead ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}>
                         {notification.message}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
@@ -118,7 +123,7 @@ export default function Notifications() {
                         e.stopPropagation();
                         handleMarkAsRead(notification.id);
                       }}
-                      className="text-blue-600 hover:text-blue-700 ml-4"
+                      className="text-blue-600 hover:text-blue-700 ml-4 flex-shrink-0"
                       title="Отметить как прочитанное"
                     >
                       <Check className="w-5 h-5" />
