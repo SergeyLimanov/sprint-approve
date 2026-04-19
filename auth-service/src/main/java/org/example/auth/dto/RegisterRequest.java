@@ -19,7 +19,7 @@ public class RegisterRequest {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
-    @NotNull(message = "Team ID is required")
+    // Team ID is optional - user can be created without a team
     private Long teamId;
 
     @NotBlank(message = "Role is required")
