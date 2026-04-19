@@ -32,6 +32,11 @@ export default function Layout({ children }: LayoutProps) {
     return () => clearInterval(interval);
   }, [userId]);
 
+  // Обновляем счётчик при переходе на другую страницу
+  useEffect(() => {
+    loadUnreadCount();
+  }, [location.pathname]);
+
   const loadUnreadCount = async () => {
     if (!userId) return;
     try {
