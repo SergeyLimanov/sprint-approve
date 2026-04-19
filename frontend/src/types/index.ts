@@ -79,6 +79,7 @@ export interface Artifact {
   id: number;
   name: string;
   url: string;
+  downloadUrl?: string;
   fileType?: string;
   fileSize?: number;
   taskId: number;

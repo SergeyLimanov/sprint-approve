@@ -423,16 +423,16 @@ export default function TaskDetail() {
                     <div className="flex items-start justify-between p-3 bg-gray-50">
                       <div className="flex-1 flex items-start space-x-3">
                         {/* Image Preview */}
-                        {artifact.fileType?.startsWith('image/') && (
+                        {artifact.fileType?.startsWith('image/') && artifact.downloadUrl && (
                           <img
-                            src={artifact.url}
+                            src={artifact.downloadUrl}
                             alt={artifact.name}
                             className="w-16 h-16 object-cover rounded border border-gray-300"
                           />
                         )}
                         <div className="flex-1">
                           <a
-                            href={artifact.url}
+                            href={artifact.downloadUrl || artifact.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-primary-600 hover:text-primary-700 font-medium"
