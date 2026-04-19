@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Team, User, Sprint, Task, Artifact, Comment } from '../types';
+import type { Team, User, Sprint, Task, Artifact, Comment, TaskHistory } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -78,10 +78,11 @@ export const tasksApi = {
   getByAssignee: (userId: number) => api.get<Task[]>(`/tasks/assigned/${userId}`),
   create: (data: Partial<Task>) => api.post<Task>('/tasks', data),
   update: (id: number, data: Partial<Task>) => api.put<Task>(`/tasks/${id}`, data),
-  submit: (id: number) => api.patch<Task>(`/tasks/${id}/submit`),
-  approve: (id: number, approverId: number) => api.patch<Task>(`/tasks/${id}/approve?approverId=${approverId}`),
-  reject: (id: number, approverId: number) => api.patch<Task>(`/tasks/${id}/reject?approverId=${approverId}`),
+  submit: (id: number, userId: number, comment?: string) => api.patch<Task>(`/tasks/${id}/submit?userId=${userId}${comment ? `&comment=${encodeURIComponent(comment)}` : ''}`),
+  approve: (id: number, approverId: number, comment?: string) => api.patch<Task>(`/tasks/${id}/approve?approverId=${approverId}${comment ? `&comment=${encodeURIComponent(comment)}` : ''}`),
+  reject: (id: number, approverId: number, comment?: string) => api.patch<Task>(`/tasks/${id}/reject?approverId=${approverId}${comment ? `&comment=${encodeURIComponent(comment)}` : ''}`),
   delete: (id: number) => api.delete(`/tasks/${id}`),
+  getHistory: (id: number) => api.get<TaskHistory[]>(`/tasks/${id}/history`),
 };
 
 // Artifacts API

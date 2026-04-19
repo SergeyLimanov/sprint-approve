@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { tasksApi, artifactsApi, commentsApi, usersApi } from '../api/client';
-import type { Task, Artifact, Comment, User } from '../types';
+import type { Task, Artifact, Comment, User, TaskHistory } from '../types';
 import { TaskStatus } from '../types';
-import { ArrowLeft, CheckCircle, XCircle, Clock, Send, FileText, MessageSquare, Upload, Trash2, Edit } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Clock, Send, FileText, MessageSquare, Upload, Trash2, Edit, History } from 'lucide-react';
 
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
@@ -25,12 +25,16 @@ export default function TaskDetail() {
     assignedTo: '',
     approverId: '',
   });
+  const [history, setHistory] = useState<TaskHistory[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [reviewComment, setReviewComment] = useState('');
 
   useEffect(() => {
     if (id) {
       loadTask(Number(id));
       loadArtifacts(Number(id));
       loadComments(Number(id));
+      loadHistory(Number(id));
     }
     loadUsers();
   }, [id]);
@@ -217,6 +221,15 @@ export default function TaskDetail() {
     }
   };
 
+  const loadHistory = async (taskId: number) => {
+    try {
+      const response = await tasksApi.getHistory(taskId);
+      setHistory(response.data);
+    } catch (error) {
+      console.error('Failed to load task history:', error);
+    }
+  };
+
   const handleEditClick = () => {
     if (!task) return;
     setEditForm({
@@ -263,8 +276,10 @@ export default function TaskDetail() {
       return;
     }
     try {
-      await tasksApi.approve(task.id, Number(userId));
+      await tasksApi.approve(task.id, Number(userId), reviewComment);
+      setReviewComment('');
       loadTask(task.id);
+      loadHistory(task.id);
     } catch (error: any) {
       console.error('Failed to approve task:', error);
       alert(error.response?.data?.message || 'Failed to approve task');
@@ -278,9 +293,15 @@ export default function TaskDetail() {
       alert('User not logged in');
       return;
     }
+    if (!reviewComment.trim()) {
+      alert('Пожалуйста, укажите причину отклонения');
+      return;
+    }
     try {
-      await tasksApi.reject(task.id, Number(userId));
+      await tasksApi.reject(task.id, Number(userId), reviewComment);
+      setReviewComment('');
       loadTask(task.id);
+      loadHistory(task.id);
     } catch (error: any) {
       console.error('Failed to reject task:', error);
       alert(error.response?.data?.message || 'Failed to reject task');
@@ -289,9 +310,16 @@ export default function TaskDetail() {
 
   const handleSubmitForReview = async () => {
     if (!task) return;
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('User not logged in');
+      return;
+    }
     try {
-      await tasksApi.submit(task.id);
+      await tasksApi.submit(task.id, Number(userId), reviewComment);
+      setReviewComment('');
       loadTask(task.id);
+      loadHistory(task.id);
     } catch (error) {
       console.error('Failed to submit task:', error);
     }
@@ -363,22 +391,104 @@ export default function TaskDetail() {
         </div>
 
         {(task.status === TaskStatus.CREATED || task.status === TaskStatus.REJECTED) && (
-          <button onClick={handleSubmitForReview} className="btn btn-primary flex items-center">
-            <Send className="w-4 h-4 mr-2" />
-            {task.status === TaskStatus.REJECTED ? 'Повторно отправить на рассмотрение' : 'Отправить на рассмотрение'}
-          </button>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Комментарий (опционально)
+              </label>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                className="input"
+                rows={2}
+                placeholder="Добавьте комментарий..."
+              />
+            </div>
+            <button onClick={handleSubmitForReview} className="btn btn-primary flex items-center">
+              <Send className="w-4 h-4 mr-2" />
+              {task.status === TaskStatus.REJECTED ? 'Повторно отправить на рассмотрение' : 'Отправить на рассмотрение'}
+            </button>
+          </div>
         )}
 
         {task.status === TaskStatus.ON_REVIEW && (
-          <div className="flex space-x-3">
-            <button onClick={handleApprove} className="btn btn-success flex items-center">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Одобрить
-            </button>
-            <button onClick={handleReject} className="btn btn-danger flex items-center">
-              <XCircle className="w-4 h-4 mr-2" />
-              Отклонить
-            </button>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Комментарий {task.status === TaskStatus.ON_REVIEW ? '(обязательно при отклонении)' : '(опционально)'}
+              </label>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                className="input"
+                rows={3}
+                placeholder="Укажите причину одобрения/отклонения..."
+              />
+            </div>
+            <div className="flex space-x-3">
+              <button onClick={handleApprove} className="btn btn-success flex items-center">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Одобрить
+              </button>
+              <button onClick={handleReject} className="btn btn-danger flex items-center">
+                <XCircle className="w-4 h-4 mr-2" />
+                Отклонить
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* History Button */}
+        <div className="mt-4">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="btn btn-secondary flex items-center"
+          >
+            <History className="w-4 h-4 mr-2" />
+            {showHistory ? 'Скрыть историю' : 'Показать историю изменений'}
+          </button>
+        </div>
+
+        {/* History Section */}
+        {showHistory && (
+          <div className="mt-4 border-t pt-4">
+            <h3 className="text-lg font-semibold mb-3">История изменений статуса</h3>
+            {history.length === 0 ? (
+              <p className="text-gray-500 text-sm">История пуста</p>
+            ) : (
+              <div className="space-y-3">
+                {history.map((item) => (
+                  <div key={item.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-medium text-gray-900">{item.changedByName || 'Unknown'}</span>
+                          <span className="text-gray-500">изменил статус:</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm mb-2">
+                          <span className="badge badge-created">{item.previousStatus}</span>
+                          <span>→</span>
+                          <span className={`badge ${
+                            item.newStatus === 'APPROVED' ? 'badge-approved' :
+                            item.newStatus === 'REJECTED' ? 'badge-rejected' :
+                            item.newStatus === 'ON_REVIEW' ? 'badge-on-review' :
+                            'badge-created'
+                          }`}>{item.newStatus}</span>
+                        </div>
+                        {item.comment && (
+                          <div className="bg-white rounded p-2 text-sm text-gray-700 border border-gray-200">
+                            <span className="font-medium">Комментарий:</span> {item.comment}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 ml-4">
+                        {new Date(item.changedAt).toLocaleString('ru-RU')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

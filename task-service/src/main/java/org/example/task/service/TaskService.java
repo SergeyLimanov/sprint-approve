@@ -8,8 +8,11 @@ import org.example.task.client.SprintServiceClient;
 import org.example.task.client.UserDto;
 import org.example.task.client.UserServiceClient;
 import org.example.task.dto.TaskDto;
+import org.example.task.dto.TaskHistoryDto;
 import org.example.task.entity.Task;
+import org.example.task.entity.TaskHistory;
 import org.example.task.entity.TaskStatus;
+import org.example.task.repository.TaskHistoryRepository;
 import org.example.task.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TaskService {
     private final TaskRepository taskRepository;
+    private final TaskHistoryRepository taskHistoryRepository;
     private final UserServiceClient userServiceClient;
     private final SprintServiceClient sprintServiceClient;
     private final NotificationServiceClient notificationServiceClient;
@@ -115,7 +119,7 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskDto submitForReview(Long id) {
+    public TaskDto submitForReview(Long id, Long userId, String comment) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
 
@@ -124,8 +128,12 @@ public class TaskService {
         }
 
         boolean isResubmission = task.getStatus() == TaskStatus.REJECTED;
+        TaskStatus previousStatus = task.getStatus();
         task.setStatus(TaskStatus.ON_REVIEW);
         Task updatedTask = taskRepository.save(task);
+        
+        // Save history
+        saveTaskHistory(task.getId(), previousStatus, TaskStatus.ON_REVIEW, userId, comment);
         
         // Send notification to approver
         if (task.getApproverId() != null) {
@@ -148,7 +156,7 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskDto approveTask(Long id, Long approverId) {
+    public TaskDto approveTask(Long id, Long approverId, String comment) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
 
@@ -171,8 +179,12 @@ public class TaskService {
             throw new RuntimeException("Only the assigned approver can approve this task");
         }
 
+        TaskStatus previousStatus = task.getStatus();
         task.setStatus(TaskStatus.APPROVED);
         Task updatedTask = taskRepository.save(task);
+
+        // Save history
+        saveTaskHistory(task.getId(), previousStatus, TaskStatus.APPROVED, approverId, comment);
 
         // Send notification to task creator
         if (task.getCreatedBy() != null) {
@@ -201,7 +213,7 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskDto rejectTask(Long id, Long approverId) {
+    public TaskDto rejectTask(Long id, Long approverId, String comment) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
 
@@ -224,8 +236,12 @@ public class TaskService {
             throw new RuntimeException("Only the assigned approver can reject this task");
         }
 
+        TaskStatus previousStatus = task.getStatus();
         task.setStatus(TaskStatus.REJECTED);
         Task updatedTask = taskRepository.save(task);
+        
+        // Save history
+        saveTaskHistory(task.getId(), previousStatus, TaskStatus.REJECTED, approverId, comment);
         
         // Send notification to task creator
         if (task.getCreatedBy() != null) {
@@ -334,6 +350,48 @@ public class TaskService {
             }
         }
 
+        return dto;
+    }
+
+    private void saveTaskHistory(Long taskId, TaskStatus previousStatus, TaskStatus newStatus, Long changedBy, String comment) {
+        TaskHistory history = new TaskHistory();
+        history.setTaskId(taskId);
+        history.setPreviousStatus(previousStatus.name());
+        history.setNewStatus(newStatus.name());
+        history.setComment(comment);
+        history.setChangedBy(changedBy);
+        
+        // Fetch user name
+        if (changedBy != null) {
+            try {
+                UserDto user = userServiceClient.getUserById(changedBy);
+                history.setChangedByName(user.getName());
+            } catch (Exception e) {
+                log.warn("Could not fetch user name for history: {}", e.getMessage());
+            }
+        }
+        
+        taskHistoryRepository.save(history);
+        log.info("Task history saved: {} -> {} by user {}", previousStatus, newStatus, changedBy);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskHistoryDto> getTaskHistory(Long taskId) {
+        return taskHistoryRepository.findByTaskIdOrderByChangedAtDesc(taskId).stream()
+                .map(this::convertHistoryToDto)
+                .collect(Collectors.toList());
+    }
+
+    private TaskHistoryDto convertHistoryToDto(TaskHistory history) {
+        TaskHistoryDto dto = new TaskHistoryDto();
+        dto.setId(history.getId());
+        dto.setTaskId(history.getTaskId());
+        dto.setPreviousStatus(history.getPreviousStatus());
+        dto.setNewStatus(history.getNewStatus());
+        dto.setComment(history.getComment());
+        dto.setChangedBy(history.getChangedBy());
+        dto.setChangedByName(history.getChangedByName());
+        dto.setChangedAt(history.getChangedAt());
         return dto;
     }
 }

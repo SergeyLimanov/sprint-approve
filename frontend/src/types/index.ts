@@ -98,3 +98,14 @@ export interface Comment {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface TaskHistory {
+  id: number;
+  taskId: number;
+  previousStatus: string;
+  newStatus: string;
+  comment?: string;
+  changedBy: number;
+  changedByName?: string;
+  changedAt: string;
+}

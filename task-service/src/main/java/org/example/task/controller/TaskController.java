@@ -1,17 +1,17 @@
 package org.example.task.controller;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.task.dto.TaskDto;
-import org.example.task.entity.TaskStatus;
+import org.example.task.dto.TaskHistoryDto;
 import org.example.task.service.TaskService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+{{ ... }}
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -64,20 +64,29 @@ public class TaskController {
 
     @PatchMapping("/{id}/submit")
     @Operation(summary = "Submit task for review")
-    public ResponseEntity<TaskDto> submitForReview(@PathVariable Long id) {
-        return ResponseEntity.ok(taskService.submitForReview(id));
+    public ResponseEntity<TaskDto> submitForReview(
+            @PathVariable Long id,
+            @RequestParam Long userId,
+            @RequestParam(required = false) String comment) {
+        return ResponseEntity.ok(taskService.submitForReview(id, userId, comment));
     }
 
     @PatchMapping("/{id}/approve")
     @Operation(summary = "Approve task")
-    public ResponseEntity<TaskDto> approveTask(@PathVariable Long id, @RequestParam Long approverId) {
-        return ResponseEntity.ok(taskService.approveTask(id, approverId));
+    public ResponseEntity<TaskDto> approveTask(
+            @PathVariable Long id,
+            @RequestParam Long approverId,
+            @RequestParam(required = false) String comment) {
+        return ResponseEntity.ok(taskService.approveTask(id, approverId, comment));
     }
 
     @PatchMapping("/{id}/reject")
     @Operation(summary = "Reject task")
-    public ResponseEntity<TaskDto> rejectTask(@PathVariable Long id, @RequestParam Long approverId) {
-        return ResponseEntity.ok(taskService.rejectTask(id, approverId));
+    public ResponseEntity<TaskDto> rejectTask(
+            @PathVariable Long id,
+            @RequestParam Long approverId,
+            @RequestParam(required = false) String comment) {
+        return ResponseEntity.ok(taskService.rejectTask(id, approverId, comment));
     }
 
     @DeleteMapping("/{id}")
@@ -85,5 +94,11 @@ public class TaskController {
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/history")
+    @Operation(summary = "Get task history")
+    public ResponseEntity<List<TaskHistoryDto>> getTaskHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(taskService.getTaskHistory(id));
     }
 }
