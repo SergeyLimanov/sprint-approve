@@ -28,6 +28,12 @@ export default function SprintDetail() {
 
   const loadSprint = async (sprintId: number) => {
     try {
+      // Сначала пересчитываем статус
+      await sprintsApi.recalculate(sprintId).catch(() => {
+        // Игнорируем ошибку, если пересчёт не удался
+      });
+      
+      // Затем загружаем спринт
       const response = await sprintsApi.getById(sprintId);
       setSprint(response.data);
     } catch (error) {

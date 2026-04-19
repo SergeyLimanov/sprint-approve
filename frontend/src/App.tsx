@@ -7,6 +7,7 @@ import Sprints from './pages/Sprints';
 import SprintDetail from './pages/SprintDetail';
 import Tasks from './pages/Tasks';
 import TaskDetail from './pages/TaskDetail';
+import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -44,6 +45,7 @@ function App() {
                   <Route path="/sprints/:id" element={<SprintDetail />} />
                   <Route path="/tasks" element={<Tasks />} />
                   <Route path="/tasks/:id" element={<TaskDetail />} />
+                  <Route path="/notifications" element={<Notifications />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>

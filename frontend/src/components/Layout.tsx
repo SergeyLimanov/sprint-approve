@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Briefcase, CheckSquare, Layers, LogOut, User } from 'lucide-react';
+import { Home, Users, Briefcase, CheckSquare, Layers, LogOut, User, Bell } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,6 +18,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Пользователи', href: '/users', icon: Users },
     { name: 'Спринты', href: '/sprints', icon: Briefcase },
     { name: 'Задачи', href: '/tasks', icon: CheckSquare },
+    { name: 'Уведомления', href: '/notifications', icon: Bell },
   ];
 
   const handleLogout = () => {

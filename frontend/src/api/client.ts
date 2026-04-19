@@ -93,18 +93,34 @@ export const artifactsApi = {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-  }),
   delete: (id: number) => api.delete(`/artifacts/${id}`),
 };
 
 // Comments API
 export const commentsApi = {
-  getByTask: (taskId: number) => api.get<Comment[]>(`/comments/task/${taskId}`),
   getByArtifact: (artifactId: number) => api.get<Comment[]>(`/comments/artifact/${artifactId}`),
-  getById: (id: number) => api.get<Comment>(`/comments/${id}`),
   create: (data: Partial<Comment>) => api.post<Comment>('/comments', data),
   update: (id: number, data: Partial<Comment>) => api.put<Comment>(`/comments/${id}`, data),
   delete: (id: number, authorId: number) => api.delete(`/comments/${id}?authorId=${authorId}`),
+};
+
+// Notifications API
+export interface Notification {
+  id: number;
+  userId: number;
+  message: string;
+  type: string;
+  relatedEntityId?: number;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export const notificationsApi = {
+  getByUser: (userId: number) => api.get<Notification[]>(`/notifications/user/${userId}`),
+  getUnread: (userId: number) => api.get<Notification[]>(`/notifications/user/${userId}/unread`),
+  getUnreadCount: (userId: number) => api.get<number>(`/notifications/user/${userId}/unread/count`),
+  markAsRead: (id: number) => api.patch(`/notifications/${id}/read`),
+  markAllAsRead: (userId: number) => api.patch(`/notifications/user/${userId}/read-all`),
 };
 
 export default api;
