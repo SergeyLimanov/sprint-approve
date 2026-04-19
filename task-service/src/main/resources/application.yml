@@ -1,6 +1,10 @@
 spring:
   application:
     name: task-service
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
   datasource:
     url: jdbc:postgresql://localhost:5434/task_db
     username: postgres
