@@ -123,8 +123,23 @@ public class TaskService {
             throw new RuntimeException("Only tasks with CREATED or REJECTED status can be submitted for review");
         }
 
+        boolean isResubmission = task.getStatus() == TaskStatus.REJECTED;
         task.setStatus(TaskStatus.ON_REVIEW);
         Task updatedTask = taskRepository.save(task);
+        
+        // Send notification to approver
+        if (task.getApproverId() != null) {
+            String message = isResubmission 
+                ? "Задача \"" + task.getTitle() + "\" повторно отправлена на рассмотрение"
+                : "Задача \"" + task.getTitle() + "\" отправлена на рассмотрение";
+            
+            sendNotification(
+                task.getApproverId(),
+                message,
+                "TASK_SUBMITTED_FOR_REVIEW",
+                task.getId()
+            );
+        }
         
         // Recalculate sprint status
         recalculateSprintStatus(task.getSprintId());
