@@ -2,6 +2,8 @@ package org.example.task.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.task.client.NotificationDto;
+import org.example.task.client.NotificationServiceClient;
 import org.example.task.client.SprintServiceClient;
 import org.example.task.client.UserDto;
 import org.example.task.client.UserServiceClient;
@@ -22,6 +24,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final UserServiceClient userServiceClient;
     private final SprintServiceClient sprintServiceClient;
+    private final NotificationServiceClient notificationServiceClient;
 
     @Transactional(readOnly = true)
     public List<TaskDto> getAllTasks() {
@@ -70,6 +73,26 @@ public class TaskService {
         task.setCreatedBy(taskDto.getCreatedBy());
 
         Task savedTask = taskRepository.save(task);
+        
+        // Send notification to approver
+        if (savedTask.getApproverId() != null) {
+            sendNotification(
+                savedTask.getApproverId(),
+                "Вам назначена новая задача: " + savedTask.getTitle(),
+                "TASK_ASSIGNED",
+                savedTask.getId()
+            );
+        }
+        
+        // Send notification to assignee
+        if (savedTask.getAssignedTo() != null && !savedTask.getAssignedTo().equals(savedTask.getApproverId())) {
+            sendNotification(
+                savedTask.getAssignedTo(),
+                "Вам назначена задача: " + savedTask.getTitle(),
+                "TASK_ASSIGNED",
+                savedTask.getId()
+            );
+        }
         
         // Recalculate sprint status
         recalculateSprintStatus(savedTask.getSprintId());
@@ -136,6 +159,26 @@ public class TaskService {
         task.setStatus(TaskStatus.APPROVED);
         Task updatedTask = taskRepository.save(task);
 
+        // Send notification to task creator
+        if (task.getCreatedBy() != null) {
+            sendNotification(
+                task.getCreatedBy(),
+                "Задача \"" + task.getTitle() + "\" одобрена",
+                "TASK_APPROVED",
+                task.getId()
+            );
+        }
+        
+        // Send notification to assignee
+        if (task.getAssignedTo() != null && !task.getAssignedTo().equals(task.getCreatedBy())) {
+            sendNotification(
+                task.getAssignedTo(),
+                "Задача \"" + task.getTitle() + "\" одобрена",
+                "TASK_APPROVED",
+                task.getId()
+            );
+        }
+
         // Recalculate sprint status
         recalculateSprintStatus(task.getSprintId());
 
@@ -169,6 +212,26 @@ public class TaskService {
         task.setStatus(TaskStatus.REJECTED);
         Task updatedTask = taskRepository.save(task);
         
+        // Send notification to task creator
+        if (task.getCreatedBy() != null) {
+            sendNotification(
+                task.getCreatedBy(),
+                "Задача \"" + task.getTitle() + "\" отклонена",
+                "TASK_REJECTED",
+                task.getId()
+            );
+        }
+        
+        // Send notification to assignee
+        if (task.getAssignedTo() != null && !task.getAssignedTo().equals(task.getCreatedBy())) {
+            sendNotification(
+                task.getAssignedTo(),
+                "Задача \"" + task.getTitle() + "\" отклонена",
+                "TASK_REJECTED",
+                task.getId()
+            );
+        }
+        
         // Recalculate sprint status
         recalculateSprintStatus(task.getSprintId());
         
@@ -197,6 +260,21 @@ public class TaskService {
             log.info("Sprint {} status recalculated based on tasks", sprintId);
         } catch (Exception e) {
             log.error("Failed to recalculate sprint {} status: {}", sprintId, e.getMessage());
+        }
+    }
+    
+    private void sendNotification(Long userId, String message, String type, Long relatedEntityId) {
+        try {
+            NotificationDto notification = new NotificationDto();
+            notification.setUserId(userId);
+            notification.setMessage(message);
+            notification.setType(type);
+            notification.setRelatedEntityId(relatedEntityId);
+            
+            notificationServiceClient.createNotification(notification);
+            log.info("Notification sent to user {}: {}", userId, message);
+        } catch (Exception e) {
+            log.error("Failed to send notification to user {}: {}", userId, e.getMessage());
         }
     }
 

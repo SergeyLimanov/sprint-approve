@@ -99,6 +99,7 @@ export const artifactsApi = {
 
 // Comments API
 export const commentsApi = {
+  getByTask: (taskId: number) => api.get<Comment[]>(`/comments/task/${taskId}`),
   getByArtifact: (artifactId: number) => api.get<Comment[]>(`/comments/artifact/${artifactId}`),
   create: (data: Partial<Comment>) => api.post<Comment>('/comments', data),
   update: (id: number, data: Partial<Comment>) => api.put<Comment>(`/comments/${id}`, data),

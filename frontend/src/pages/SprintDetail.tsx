@@ -59,48 +59,6 @@ export default function SprintDetail() {
     }
   };
 
-  const handleApprove = async () => {
-    if (!sprint) return;
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
-      alert('User not logged in');
-      return;
-    }
-    try {
-      await sprintsApi.approve(sprint.id, Number(userId));
-      loadSprint(sprint.id);
-    } catch (error: any) {
-      console.error('Failed to approve sprint:', error);
-      alert(error.response?.data?.message || 'Failed to approve sprint');
-    }
-  };
-
-  const handleReject = async () => {
-    if (!sprint) return;
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
-      alert('User not logged in');
-      return;
-    }
-    try {
-      await sprintsApi.reject(sprint.id, Number(userId));
-      loadSprint(sprint.id);
-    } catch (error: any) {
-      console.error('Failed to reject sprint:', error);
-      alert(error.response?.data?.message || 'Failed to reject sprint');
-    }
-  };
-
-  const handleRecalculate = async () => {
-    if (!sprint) return;
-    try {
-      await sprintsApi.recalculate(sprint.id);
-      loadSprint(sprint.id);
-    } catch (error: any) {
-      console.error('Failed to recalculate sprint status:', error);
-      alert(error.response?.data?.message || 'Failed to recalculate sprint status');
-    }
-  };
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,6 +135,20 @@ export default function SprintDetail() {
           <p className="text-gray-700 mb-6">{sprint.description}</p>
         )}
 
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p className="text-sm text-blue-800">
+            ℹ️ <strong>Статус спринта обновляется автоматически</strong> на основе статусов задач:
+            <br />
+            • <strong>Одобрен</strong> - все задачи одобрены
+            <br />
+            • <strong>Отклонён</strong> - хотя бы одна задача отклонена
+            <br />
+            • <strong>На рассмотрении</strong> - есть задачи на рассмотрении
+            <br />
+            • <strong>Создан</strong> - есть созданные задачи
+          </p>
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div>
             <div className="text-sm text-gray-500">Тип</div>
@@ -202,18 +174,6 @@ export default function SprintDetail() {
           )}
         </div>
 
-        {sprint.status === SprintStatus.CREATED && (
-          <div className="flex space-x-3">
-            <button onClick={handleApprove} className="btn btn-success flex items-center">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Одобрить спринт
-            </button>
-            <button onClick={handleReject} className="btn btn-danger flex items-center">
-              <XCircle className="w-4 h-4 mr-2" />
-              Отклонить спринт
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">

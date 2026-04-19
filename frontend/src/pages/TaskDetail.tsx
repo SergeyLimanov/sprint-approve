@@ -75,11 +75,17 @@ export default function TaskDetail() {
     e.preventDefault();
     if (!task || !newComment.trim()) return;
 
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('User not logged in');
+      return;
+    }
+
     try {
       await commentsApi.create({
         content: newComment,
         taskId: task.id,
-        authorId: 1, // TODO: Replace with actual user ID
+        authorId: Number(userId),
       });
       setNewComment('');
       loadComments(task.id);
