@@ -25,7 +25,8 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
   instance:
-    prefer-ip-address: true
+    prefer-ip-address: false
+    hostname: localhost
 
 springdoc:
   api-docs:
