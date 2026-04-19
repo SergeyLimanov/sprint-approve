@@ -65,6 +65,7 @@ export const sprintsApi = {
   submit: (id: number) => api.patch<Sprint>(`/sprints/${id}/submit`),
   approve: (id: number, approverId: number) => api.patch<Sprint>(`/sprints/${id}/approve?approverId=${approverId}`),
   reject: (id: number, approverId: number) => api.patch<Sprint>(`/sprints/${id}/reject?approverId=${approverId}`),
+  recalculate: (id: number) => api.patch<Sprint>(`/sprints/${id}/recalculate-status`),
   delete: (id: number) => api.delete(`/sprints/${id}`),
 };
 
