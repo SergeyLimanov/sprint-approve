@@ -236,6 +236,7 @@ export default function TaskDetail() {
       await tasksApi.update(task.id, {
         title: editForm.title,
         description: editForm.description,
+        sprintId: task.sprintId,
         assignedTo: editForm.assignedTo ? Number(editForm.assignedTo) : undefined,
         approverId: editForm.approverId ? Number(editForm.approverId) : undefined,
       });

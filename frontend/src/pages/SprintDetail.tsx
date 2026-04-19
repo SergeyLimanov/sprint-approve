@@ -114,6 +114,8 @@ export default function SprintDetail() {
       await sprintsApi.update(sprint.id, {
         name: editForm.title,
         description: editForm.description,
+        teamId: sprint.teamId,
+        type: sprint.type,
         startDate: editForm.startDate || undefined,
         endDate: editForm.endDate || undefined,
       });
