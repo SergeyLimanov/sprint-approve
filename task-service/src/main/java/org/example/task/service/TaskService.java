@@ -96,8 +96,8 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
 
-        if (task.getStatus() != TaskStatus.CREATED) {
-            throw new RuntimeException("Only tasks with CREATED status can be submitted for review");
+        if (task.getStatus() != TaskStatus.CREATED && task.getStatus() != TaskStatus.REJECTED) {
+            throw new RuntimeException("Only tasks with CREATED or REJECTED status can be submitted for review");
         }
 
         task.setStatus(TaskStatus.ON_REVIEW);

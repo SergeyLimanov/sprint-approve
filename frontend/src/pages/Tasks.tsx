@@ -199,14 +199,14 @@ export default function Tasks() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
-                      {task.status === TaskStatus.CREATED && (
+                      {(task.status === TaskStatus.CREATED || task.status === TaskStatus.REJECTED) && (
                         <button
                           onClick={() => handleSubmitForReview(task.id)}
                           className="btn btn-secondary btn-sm inline-flex items-center"
-                          title="Отправить на рассмотрение"
+                          title={task.status === TaskStatus.REJECTED ? 'Повторно отправить на рассмотрение' : 'Отправить на рассмотрение'}
                         >
                           <Send className="w-3 h-3 mr-1" />
-                          На ревью
+                          {task.status === TaskStatus.REJECTED ? 'Повторно' : 'На ревью'}
                         </button>
                       )}
                       {task.status === TaskStatus.ON_REVIEW && (

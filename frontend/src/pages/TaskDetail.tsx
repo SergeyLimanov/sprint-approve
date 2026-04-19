@@ -300,10 +300,10 @@ export default function TaskDetail() {
           )}
         </div>
 
-        {task.status === TaskStatus.CREATED && (
+        {(task.status === TaskStatus.CREATED || task.status === TaskStatus.REJECTED) && (
           <button onClick={handleSubmitForReview} className="btn btn-primary flex items-center">
             <Send className="w-4 h-4 mr-2" />
-            Отправить на рассмотрение
+            {task.status === TaskStatus.REJECTED ? 'Повторно отправить на рассмотрение' : 'Отправить на рассмотрение'}
           </button>
         )}
 
