@@ -117,6 +117,8 @@ export default function SprintDetail() {
         approverId: '',
       });
       loadTasks(sprint.id);
+      // Автоматически обновляем статус спринта
+      setTimeout(() => loadSprint(sprint.id), 500);
     } catch (error) {
       console.error('Failed to create task:', error);
     }
@@ -194,24 +196,18 @@ export default function SprintDetail() {
           )}
         </div>
 
-        <div className="flex space-x-3">
-          {sprint.status === SprintStatus.CREATED && (
-            <>
-              <button onClick={handleApprove} className="btn btn-success flex items-center">
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Одобрить спринт
-              </button>
-              <button onClick={handleReject} className="btn btn-danger flex items-center">
-                <XCircle className="w-4 h-4 mr-2" />
-                Отклонить спринт
-              </button>
-            </>
-          )}
-          <button onClick={handleRecalculate} className="btn btn-secondary flex items-center">
-            <Clock className="w-4 h-4 mr-2" />
-            Пересчитать статус
-          </button>
-        </div>
+        {sprint.status === SprintStatus.CREATED && (
+          <div className="flex space-x-3">
+            <button onClick={handleApprove} className="btn btn-success flex items-center">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Одобрить спринт
+            </button>
+            <button onClick={handleReject} className="btn btn-danger flex items-center">
+              <XCircle className="w-4 h-4 mr-2" />
+              Отклонить спринт
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
