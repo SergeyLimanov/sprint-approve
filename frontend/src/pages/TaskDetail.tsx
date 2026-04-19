@@ -201,22 +201,34 @@ export default function TaskDetail() {
   };
 
   const handleApprove = async () => {
-    if (!task || !task.approverId) return;
+    if (!task) return;
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('User not logged in');
+      return;
+    }
     try {
-      await tasksApi.approve(task.id, task.approverId);
+      await tasksApi.approve(task.id, Number(userId));
       loadTask(task.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to approve task:', error);
+      alert(error.response?.data?.message || 'Failed to approve task');
     }
   };
 
   const handleReject = async () => {
-    if (!task || !task.approverId) return;
+    if (!task) return;
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('User not logged in');
+      return;
+    }
     try {
-      await tasksApi.reject(task.id, task.approverId);
+      await tasksApi.reject(task.id, Number(userId));
       loadTask(task.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to reject task:', error);
+      alert(error.response?.data?.message || 'Failed to reject task');
     }
   };
 

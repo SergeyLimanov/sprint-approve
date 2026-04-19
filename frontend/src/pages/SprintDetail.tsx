@@ -55,21 +55,33 @@ export default function SprintDetail() {
 
   const handleApprove = async () => {
     if (!sprint) return;
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('User not logged in');
+      return;
+    }
     try {
-      await sprintsApi.approve(sprint.id);
+      await sprintsApi.approve(sprint.id, Number(userId));
       loadSprint(sprint.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to approve sprint:', error);
+      alert(error.response?.data?.message || 'Failed to approve sprint');
     }
   };
 
   const handleReject = async () => {
     if (!sprint) return;
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('User not logged in');
+      return;
+    }
     try {
-      await sprintsApi.reject(sprint.id);
+      await sprintsApi.reject(sprint.id, Number(userId));
       loadSprint(sprint.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to reject sprint:', error);
+      alert(error.response?.data?.message || 'Failed to reject sprint');
     }
   };
 

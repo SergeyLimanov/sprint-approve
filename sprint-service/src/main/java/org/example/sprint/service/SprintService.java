@@ -108,9 +108,24 @@ public class SprintService {
     }
 
     @Transactional
-    public SprintDto approveSprint(Long id) {
+    public SprintDto approveSprint(Long id, Long approverId) {
         Sprint sprint = sprintRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
+
+        // Check approver role
+        try {
+            UserDto approver = teamServiceClient.getUserById(approverId);
+            if (!"APPROVER".equals(approver.getRole()) && 
+                !"TEAM_LEAD".equals(approver.getRole()) && 
+                !"MANAGER".equals(approver.getRole())) {
+                throw new RuntimeException("Only APPROVER, TEAM_LEAD or MANAGER can approve sprints. Your role: " + approver.getRole());
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Could not verify approver role: {}", e.getMessage());
+            throw new RuntimeException("Could not verify approver permissions");
+        }
 
         // Check if all tasks are approved
         try {
@@ -131,9 +146,24 @@ public class SprintService {
     }
 
     @Transactional
-    public SprintDto rejectSprint(Long id) {
+    public SprintDto rejectSprint(Long id, Long approverId) {
         Sprint sprint = sprintRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
+
+        // Check approver role
+        try {
+            UserDto approver = teamServiceClient.getUserById(approverId);
+            if (!"APPROVER".equals(approver.getRole()) && 
+                !"TEAM_LEAD".equals(approver.getRole()) && 
+                !"MANAGER".equals(approver.getRole())) {
+                throw new RuntimeException("Only APPROVER, TEAM_LEAD or MANAGER can reject sprints. Your role: " + approver.getRole());
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Could not verify approver role: {}", e.getMessage());
+            throw new RuntimeException("Could not verify approver permissions");
+        }
 
         sprint.setStatus(SprintStatus.REJECTED);
         Sprint updatedSprint = sprintRepository.save(sprint);
@@ -157,10 +187,11 @@ public class SprintService {
             List<TaskDto> tasks = taskServiceClient.getTasksBySprintId(id);
             
             if (tasks.isEmpty()) {
-                // Если нет задач, спринт остается в текущем статусе или возвращается в CREATED
-                if (sprint.getStatus() == SprintStatus.APPROVED || sprint.getStatus() == SprintStatus.REJECTED) {
+                // Если нет задач, спринт возвращается в CREATED
+                if (sprint.getStatus() != SprintStatus.CREATED) {
+                    SprintStatus oldStatus = sprint.getStatus();
                     sprint.setStatus(SprintStatus.CREATED);
-                    log.info("Sprint {} status changed to CREATED - no tasks", id);
+                    log.info("Sprint {} status changed from {} to CREATED - no tasks", id, oldStatus);
                 }
             } else {
                 // Проверяем статусы задач
@@ -175,18 +206,20 @@ public class SprintService {
 
                 SprintStatus newStatus = null;
                 
-                if (allApproved) {
-                    // Все задачи одобрены -> спринт одобрен
-                    newStatus = SprintStatus.APPROVED;
-                } else if (anyRejected) {
+                // ПРИОРИТЕТ: REJECTED > ON_REVIEW > CREATED > APPROVED
+                // Спринт может быть APPROVED только если ВСЕ задачи APPROVED
+                if (anyRejected) {
                     // Есть отклоненные задачи -> спринт отклонен
                     newStatus = SprintStatus.REJECTED;
                 } else if (anyOnReview) {
                     // Есть задачи на рассмотрении -> спринт на рассмотрении
                     newStatus = SprintStatus.ON_REVIEW;
                 } else if (anyCreated) {
-                    // Есть только созданные задачи -> спринт создан
+                    // Есть созданные задачи -> спринт создан
                     newStatus = SprintStatus.CREATED;
+                } else if (allApproved) {
+                    // Все задачи одобрены -> спринт одобрен
+                    newStatus = SprintStatus.APPROVED;
                 }
 
                 if (newStatus != null && sprint.getStatus() != newStatus) {

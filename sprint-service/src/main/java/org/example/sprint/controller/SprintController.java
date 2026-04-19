@@ -64,14 +64,18 @@ public class SprintController {
 
     @PatchMapping("/{id}/approve")
     @Operation(summary = "Approve sprint")
-    public ResponseEntity<SprintDto> approveSprint(@PathVariable Long id) {
-        return ResponseEntity.ok(sprintService.approveSprint(id));
+    public ResponseEntity<SprintDto> approveSprint(
+            @PathVariable Long id,
+            @RequestParam Long approverId) {
+        return ResponseEntity.ok(sprintService.approveSprint(id, approverId));
     }
 
     @PatchMapping("/{id}/reject")
     @Operation(summary = "Reject sprint")
-    public ResponseEntity<SprintDto> rejectSprint(@PathVariable Long id) {
-        return ResponseEntity.ok(sprintService.rejectSprint(id));
+    public ResponseEntity<SprintDto> rejectSprint(
+            @PathVariable Long id,
+            @RequestParam Long approverId) {
+        return ResponseEntity.ok(sprintService.rejectSprint(id, approverId));
     }
 
     @DeleteMapping("/{id}")

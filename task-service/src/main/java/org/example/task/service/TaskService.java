@@ -114,6 +114,21 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
 
+        // Check approver role
+        try {
+            UserDto approver = userServiceClient.getUserById(approverId);
+            if (!"APPROVER".equals(approver.getRole()) && 
+                !"TEAM_LEAD".equals(approver.getRole()) && 
+                !"MANAGER".equals(approver.getRole())) {
+                throw new RuntimeException("Only APPROVER, TEAM_LEAD or MANAGER can approve tasks. Your role: " + approver.getRole());
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Could not verify approver role: {}", e.getMessage());
+            throw new RuntimeException("Could not verify approver permissions");
+        }
+
         if (task.getApproverId() != null && !task.getApproverId().equals(approverId)) {
             throw new RuntimeException("Only the assigned approver can approve this task");
         }
@@ -131,6 +146,21 @@ public class TaskService {
     public TaskDto rejectTask(Long id, Long approverId) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+
+        // Check approver role
+        try {
+            UserDto approver = userServiceClient.getUserById(approverId);
+            if (!"APPROVER".equals(approver.getRole()) && 
+                !"TEAM_LEAD".equals(approver.getRole()) && 
+                !"MANAGER".equals(approver.getRole())) {
+                throw new RuntimeException("Only APPROVER, TEAM_LEAD or MANAGER can reject tasks. Your role: " + approver.getRole());
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Could not verify approver role: {}", e.getMessage());
+            throw new RuntimeException("Could not verify approver permissions");
+        }
 
         if (task.getApproverId() != null && !task.getApproverId().equals(approverId)) {
             throw new RuntimeException("Only the assigned approver can reject this task");

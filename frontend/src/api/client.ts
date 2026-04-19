@@ -63,8 +63,8 @@ export const sprintsApi = {
   create: (data: Partial<Sprint>) => api.post<Sprint>('/sprints', data),
   update: (id: number, data: Partial<Sprint>) => api.put<Sprint>(`/sprints/${id}`, data),
   submit: (id: number) => api.patch<Sprint>(`/sprints/${id}/submit`),
-  approve: (id: number) => api.patch<Sprint>(`/sprints/${id}/approve`),
-  reject: (id: number) => api.patch<Sprint>(`/sprints/${id}/reject`),
+  approve: (id: number, approverId: number) => api.patch<Sprint>(`/sprints/${id}/approve?approverId=${approverId}`),
+  reject: (id: number, approverId: number) => api.patch<Sprint>(`/sprints/${id}/reject?approverId=${approverId}`),
   delete: (id: number) => api.delete(`/sprints/${id}`),
 };
 

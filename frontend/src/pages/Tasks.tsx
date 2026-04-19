@@ -76,30 +76,32 @@ export default function Tasks() {
   };
 
   const handleApprove = async (task: Task) => {
-    if (!task.approverId) {
-      alert('У задачи не назначен аппрувер');
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('User not logged in');
       return;
     }
     try {
-      await tasksApi.approve(task.id, task.approverId);
+      await tasksApi.approve(task.id, Number(userId));
       loadTasks();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to approve task:', error);
-      alert('Ошибка при одобрении задачи');
+      alert(error.response?.data?.message || 'Ошибка при одобрении задачи');
     }
   };
 
   const handleReject = async (task: Task) => {
-    if (!task.approverId) {
-      alert('У задачи не назначен аппрувер');
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('User not logged in');
       return;
     }
     try {
-      await tasksApi.reject(task.id, task.approverId);
+      await tasksApi.reject(task.id, Number(userId));
       loadTasks();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to reject task:', error);
-      alert('Ошибка при отклонении задачи');
+      alert(error.response?.data?.message || 'Ошибка при отклонении задачи');
     }
   };
 
