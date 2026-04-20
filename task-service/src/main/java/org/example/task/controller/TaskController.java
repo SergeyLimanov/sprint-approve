@@ -5,13 +5,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.task.dto.TaskDto;
 import org.example.task.dto.TaskHistoryDto;
+import org.example.task.entity.TaskStatus;
 import org.example.task.service.TaskService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-{{ ... }}
 
 @RestController
 @RequestMapping("/api/tasks")
