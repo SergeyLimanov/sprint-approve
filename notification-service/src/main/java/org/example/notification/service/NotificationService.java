@@ -1,5 +1,7 @@
 package org.example.notification.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.notification.client.EmailNotificationRequest;
@@ -61,28 +63,47 @@ public class NotificationService {
     }
     
     private void sendEmailNotification(Notification notification) {
-        try {
-            // Fetch user details
-            UserDto user = userServiceClient.getUserById(notification.getUserId());
-            
-            if (user.getEmail() == null || user.getEmail().isEmpty()) {
-                log.warn("User {} has no email, skipping email notification", notification.getUserId());
-                return;
-            }
-            
-            EmailNotificationRequest emailRequest = new EmailNotificationRequest();
-            emailRequest.setUserEmail(user.getEmail());
-            emailRequest.setUserName(user.getName());
-            emailRequest.setMessage(notification.getMessage());
-            emailRequest.setType(notification.getType());
-            emailRequest.setTaskId(notification.getRelatedEntityId());
-            
-            emailServiceClient.sendNotificationEmail(emailRequest);
-            log.info("Email notification sent to {}", user.getEmail());
-        } catch (Exception e) {
-            log.error("Failed to send email notification: {}", e.getMessage());
-            // Don't fail the notification creation if email fails
+        // Fetch user details with resilience
+        UserDto user = getUserByIdWithResilience(notification.getUserId());
+        
+        if (user == null || user.getEmail() == null || user.getEmail().isEmpty()) {
+            log.warn("User {} has no email, skipping email notification", notification.getUserId());
+            return;
         }
+        
+        EmailNotificationRequest emailRequest = new EmailNotificationRequest();
+        emailRequest.setUserEmail(user.getEmail());
+        emailRequest.setUserName(user.getName());
+        emailRequest.setMessage(notification.getMessage());
+        emailRequest.setType(notification.getType());
+        emailRequest.setTaskId(notification.getRelatedEntityId());
+        
+        // Send email with resilience
+        sendEmailWithResilience(emailRequest);
+    }
+    
+    @CircuitBreaker(name = "userService", fallbackMethod = "getUserByIdFallback")
+    @Retry(name = "userService")
+    private UserDto getUserByIdWithResilience(Long userId) {
+        return userServiceClient.getUserById(userId);
+    }
+    
+    private UserDto getUserByIdFallback(Long userId, Exception e) {
+        log.error("Failed to fetch user {} after retries: {}", userId, e.getMessage());
+        return null; // Skip email notification if user service is down
+    }
+    
+    @CircuitBreaker(name = "emailService", fallbackMethod = "sendEmailFallback")
+    @Retry(name = "emailService")
+    private void sendEmailWithResilience(EmailNotificationRequest request) {
+        emailServiceClient.sendNotificationEmail(request);
+        log.info("Email notification sent to {}", request.getUserEmail());
+    }
+    
+    private void sendEmailFallback(EmailNotificationRequest request, Exception e) {
+        log.warn("Failed to send email to {} after retries: {}. Email notification lost.", 
+                 request.getUserEmail(), e.getMessage());
+        // TODO: Save to pending_emails table for later retry
     }
 
     @Transactional

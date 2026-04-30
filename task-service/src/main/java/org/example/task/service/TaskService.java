@@ -1,5 +1,8 @@
 package org.example.task.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.task.client.NotificationDto;
@@ -281,32 +284,40 @@ public class TaskService {
         recalculateSprintStatus(sprintId);
     }
 
+    @CircuitBreaker(name = "sprintService", fallbackMethod = "recalculateSprintStatusFallback")
+    @Retry(name = "sprintService")
     private void recalculateSprintStatus(Long sprintId) {
         if (sprintId == null) {
             return;
         }
         
-        try {
-            sprintServiceClient.recalculateSprintStatus(sprintId);
-            log.info("Sprint {} status recalculated based on tasks", sprintId);
-        } catch (Exception e) {
-            log.error("Failed to recalculate sprint {} status: {}", sprintId, e.getMessage());
-        }
+        sprintServiceClient.recalculateSprintStatus(sprintId);
+        log.info("Sprint {} status recalculated based on tasks", sprintId);
     }
     
+    private void recalculateSprintStatusFallback(Long sprintId, Exception e) {
+        log.error("Failed to recalculate sprint {} status after retries: {}. Will be retried later.", 
+                  sprintId, e.getMessage());
+        // TODO: Save to pending_updates table for later retry
+    }
+    
+    @CircuitBreaker(name = "notificationService", fallbackMethod = "sendNotificationFallback")
+    @Retry(name = "notificationService")
     private void sendNotification(Long userId, String message, String type, Long relatedEntityId) {
-        try {
-            NotificationDto notification = new NotificationDto();
-            notification.setUserId(userId);
-            notification.setMessage(message);
-            notification.setType(type);
-            notification.setRelatedEntityId(relatedEntityId);
-            
-            notificationServiceClient.createNotification(notification);
-            log.info("Notification sent to user {}: {}", userId, message);
-        } catch (Exception e) {
-            log.error("Failed to send notification to user {}: {}", userId, e.getMessage());
-        }
+        NotificationDto notification = new NotificationDto();
+        notification.setUserId(userId);
+        notification.setMessage(message);
+        notification.setType(type);
+        notification.setRelatedEntityId(relatedEntityId);
+        
+        notificationServiceClient.createNotification(notification);
+        log.info("Notification sent to user {}: {}", userId, message);
+    }
+    
+    private void sendNotificationFallback(Long userId, String message, String type, Long relatedEntityId, Exception e) {
+        log.warn("Failed to send notification to user {} after retries: {}. Notification will be lost.", 
+                 userId, e.getMessage());
+        // TODO: Save to pending_notifications table for later retry
     }
 
     private TaskDto convertToDto(Task task) {

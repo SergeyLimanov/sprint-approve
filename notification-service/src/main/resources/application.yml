@@ -49,3 +49,46 @@ firebase:
 email:
   service:
     url: http://localhost:3001
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 100
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60s
+        permitted-number-of-calls-in-half-open-state: 10
+        automatic-transition-from-open-to-half-open-enabled: true
+        minimum-number-of-calls: 5
+    instances:
+      userService:
+        base-config: default
+      emailService:
+        base-config: default
+        failure-rate-threshold: 70
+        wait-duration-in-open-state: 30s
+
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+    instances:
+      userService:
+        base-config: default
+      emailService:
+        base-config: default
+        max-attempts: 2
+
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 5s
+    instances:
+      userService:
+        timeout-duration: 3s
+      emailService:
+        timeout-duration: 5s

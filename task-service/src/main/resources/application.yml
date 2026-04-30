@@ -44,3 +44,65 @@ minio:
   access-key: ${MINIO_ACCESS_KEY:admin}
   secret-key: ${MINIO_SECRET_KEY:password123}
   bucket: ${MINIO_BUCKET:task-files}
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 100
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60s
+        permitted-number-of-calls-in-half-open-state: 10
+        automatic-transition-from-open-to-half-open-enabled: true
+        minimum-number-of-calls: 5
+    instances:
+      sprintService:
+        base-config: default
+        failure-rate-threshold: 60
+      notificationService:
+        base-config: default
+        failure-rate-threshold: 70
+        wait-duration-in-open-state: 30s
+      userService:
+        base-config: default
+
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+    instances:
+      sprintService:
+        base-config: default
+        max-attempts: 3
+      notificationService:
+        base-config: default
+        max-attempts: 2
+      userService:
+        base-config: default
+
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 5s
+    instances:
+      sprintService:
+        timeout-duration: 3s
+      notificationService:
+        timeout-duration: 2s
+      userService:
+        timeout-duration: 3s
+
+  bulkhead:
+    configs:
+      default:
+        max-concurrent-calls: 10
+        max-wait-duration: 1s
+    instances:
+      sprintService:
+        base-config: default
+      notificationService:
+        base-config: default

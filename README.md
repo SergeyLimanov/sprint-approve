@@ -55,6 +55,7 @@ Service Discovery сервер для регистрации и обнаруже
 - **Netflix Eureka** (Service Discovery)
 - **Spring Cloud Gateway** (API Gateway с JWT фильтром)
 - **OpenFeign** (межсервисное взаимодействие)
+- **Resilience4j** (Circuit Breaker, Retry, Time Limiter, Bulkhead)
 - **Lombok**
 - **Swagger/OpenAPI** (документация API)
 

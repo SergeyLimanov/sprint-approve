@@ -1,5 +1,7 @@
 package org.example.sprint.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.sprint.client.TaskDto;
@@ -14,6 +16,7 @@ import org.example.sprint.repository.SprintRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -183,8 +186,7 @@ public class SprintService {
         Sprint sprint = sprintRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
 
-        try {
-            List<TaskDto> tasks = taskServiceClient.getTasksBySprintId(id);
+        List<TaskDto> tasks = getTasksBySprintIdWithResilience(id);
             
             if (tasks.isEmpty()) {
                 // Если нет задач, спринт возвращается в CREATED
@@ -229,14 +231,50 @@ public class SprintService {
                             id, oldStatus, newStatus);
                 }
             }
-            
-            Sprint updatedSprint = sprintRepository.save(sprint);
-            return convertToDto(updatedSprint);
-            
-        } catch (Exception e) {
-            log.error("Failed to recalculate sprint {} status: {}", id, e.getMessage());
-            throw new RuntimeException("Failed to recalculate sprint status", e);
-        }
+        
+        Sprint updatedSprint = sprintRepository.save(sprint);
+        return convertToDto(updatedSprint);
+    }
+    
+    @CircuitBreaker(name = "taskService", fallbackMethod = "getTasksBySprintIdFallback")
+    @Retry(name = "taskService")
+    private List<TaskDto> getTasksBySprintIdWithResilience(Long sprintId) {
+        return taskServiceClient.getTasksBySprintId(sprintId);
+    }
+    
+    private List<TaskDto> getTasksBySprintIdFallback(Long sprintId, Exception e) {
+        log.error("Failed to fetch tasks for sprint {} after retries: {}. Using empty list.", 
+                  sprintId, e.getMessage());
+        return Collections.emptyList();
+    }
+    
+    @CircuitBreaker(name = "teamService", fallbackMethod = "getTeamByIdFallback")
+    @Retry(name = "teamService")
+    private TeamDto getTeamByIdWithResilience(Long teamId) {
+        return teamServiceClient.getTeamById(teamId);
+    }
+    
+    private TeamDto getTeamByIdFallback(Long teamId, Exception e) {
+        log.warn("Failed to fetch team {} after retries: {}", teamId, e.getMessage());
+        TeamDto fallback = new TeamDto();
+        fallback.setId(teamId);
+        fallback.setName("Unknown Team");
+        return fallback;
+    }
+    
+    @CircuitBreaker(name = "teamService", fallbackMethod = "getUserByIdFallback")
+    @Retry(name = "teamService")
+    private UserDto getUserByIdWithResilience(Long userId) {
+        return teamServiceClient.getUserById(userId);
+    }
+    
+    private UserDto getUserByIdFallback(Long userId, Exception e) {
+        log.warn("Failed to fetch user {} after retries: {}", userId, e.getMessage());
+        UserDto fallback = new UserDto();
+        fallback.setId(userId);
+        fallback.setName("Unknown User");
+        fallback.setRole("UNKNOWN");
+        return fallback;
     }
 
     private SprintDto convertToDto(Sprint sprint) {
@@ -253,22 +291,14 @@ public class SprintService {
         dto.setCreatedAt(sprint.getCreatedAt());
         dto.setUpdatedAt(sprint.getUpdatedAt());
 
-        // Fetch team name
-        try {
-            TeamDto team = teamServiceClient.getTeamById(sprint.getTeamId());
-            dto.setTeamName(team.getName());
-        } catch (Exception e) {
-            log.warn("Could not fetch team name for team id {}: {}", sprint.getTeamId(), e.getMessage());
-        }
+        // Fetch team name with resilience
+        TeamDto team = getTeamByIdWithResilience(sprint.getTeamId());
+        dto.setTeamName(team.getName());
 
-        // Fetch creator name
+        // Fetch creator name with resilience
         if (sprint.getCreatedBy() != null) {
-            try {
-                UserDto user = teamServiceClient.getUserById(sprint.getCreatedBy());
-                dto.setCreatedByName(user.getName());
-            } catch (Exception e) {
-                log.warn("Could not fetch user name for user id {}: {}", sprint.getCreatedBy(), e.getMessage());
-            }
+            UserDto user = getUserByIdWithResilience(sprint.getCreatedBy());
+            dto.setCreatedByName(user.getName());
         }
 
         return dto;
