@@ -156,13 +156,13 @@ class TaskServiceTest {
     }
 
     @Test
-    void testGetTasksByAssignedUser() {
+    void testGetTasksByAssignedTo() {
         // Given
         List<Task> tasks = Arrays.asList(testTask);
         when(taskRepository.findByAssignedTo(2L)).thenReturn(tasks);
 
         // When
-        List<TaskDto> result = taskService.getTasksByAssignedUser(2L);
+        List<TaskDto> result = taskService.getTasksByAssignedTo(2L);
 
         // Then
         assertNotNull(result);
@@ -174,9 +174,10 @@ class TaskServiceTest {
     @Test
     void testCreateTask() {
         // Given
+        NotificationDto notificationDto = new NotificationDto();
         when(taskRepository.save(any(Task.class))).thenReturn(testTask);
         when(userServiceClient.getUserById(anyLong())).thenReturn(testUser);
-        doNothing().when(notificationServiceClient).createNotification(any(NotificationDto.class));
+        when(notificationServiceClient.createNotification(any(NotificationDto.class))).thenReturn(notificationDto);
 
         // When
         TaskDto result = taskService.createTask(testTaskDto);
@@ -209,15 +210,15 @@ class TaskServiceTest {
     void testDeleteTask() {
         // Given
         when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
-        doNothing().when(taskRepository).delete(testTask);
-        doNothing().when(sprintServiceClient).recalculateSprintStatus(anyLong());
+        doNothing().when(taskRepository).deleteById(1L);
+        when(sprintServiceClient.recalculateSprintStatus(anyLong())).thenReturn(null);
 
         // When
         taskService.deleteTask(1L);
 
         // Then
         verify(taskRepository).findById(1L);
-        verify(taskRepository).delete(testTask);
+        verify(taskRepository).deleteById(1L);
         verify(sprintServiceClient).recalculateSprintStatus(testTask.getSprintId());
     }
 }
