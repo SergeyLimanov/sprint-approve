@@ -46,6 +46,12 @@
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
 
+        <!-- Apache HttpClient for Feign (supports PATCH method) -->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-hc5</artifactId>
+        </dependency>
+
         <!-- Resilience4j for Circuit Breaker, Retry, Rate Limiter -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>

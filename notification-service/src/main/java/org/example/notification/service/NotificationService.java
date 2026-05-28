@@ -57,7 +57,7 @@ public class NotificationService {
         log.info("Created notification for user {}: {}", dto.getUserId(), dto.getMessage());
         
         // Send email notification
-        sendEmailNotification(saved);
+//        sendEmailNotification(saved);
         
         return convertToDto(saved);
     }
