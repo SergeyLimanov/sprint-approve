@@ -1,9 +1,9 @@
-package org.example.task.client;
+package org.example.task.client.dto;
 
 import lombok.Data;
 
 @Data
-public class UserDto {
+public class UserResponse {
     private Long id;
     private String email;
     private String role;

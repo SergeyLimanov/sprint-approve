@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.task.dto.CommentDto;
-import org.example.task.service.CommentService;
+import org.example.task.service.ICommentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Comments", description = "Comment management API")
 public class CommentController {
-    private final CommentService commentService;
+    private final ICommentService commentService;
 
     @GetMapping("/task/{taskId}")
     @Operation(summary = "Get comments by task ID")

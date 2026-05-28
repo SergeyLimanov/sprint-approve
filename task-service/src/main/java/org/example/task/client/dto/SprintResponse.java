@@ -1,9 +1,9 @@
-package org.example.task.client;
+package org.example.task.client.dto;
 
 import lombok.Data;
 
 @Data
-public class SprintDto {
+public class SprintResponse {
     private Long id;
     private String name;
     private String status;

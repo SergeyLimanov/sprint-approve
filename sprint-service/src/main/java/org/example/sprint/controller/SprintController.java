@@ -6,7 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.sprint.dto.SprintDto;
 import org.example.sprint.entity.SprintStatus;
-import org.example.sprint.service.SprintService;
+import org.example.sprint.service.ISprintService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Sprints", description = "Sprint and MVP management API")
 public class SprintController {
-    private final SprintService sprintService;
+    private final ISprintService sprintService;
 
     @GetMapping
     @Operation(summary = "Get all sprints")

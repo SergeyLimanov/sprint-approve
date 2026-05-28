@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.task.dto.TaskDto;
 import org.example.task.dto.TaskHistoryDto;
 import org.example.task.entity.TaskStatus;
-import org.example.task.service.TaskService;
+import org.example.task.service.ITaskService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Tasks", description = "Task management API")
 public class TaskController {
-    private final TaskService taskService;
+    private final ITaskService taskService;
 
     @GetMapping
     @Operation(summary = "Get all tasks")

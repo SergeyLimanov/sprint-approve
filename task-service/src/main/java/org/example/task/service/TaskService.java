@@ -5,16 +5,18 @@ import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.task.client.NotificationDto;
+import org.example.task.client.dto.NotificationRequest;
+import org.example.task.client.dto.UserResponse;
 import org.example.task.client.NotificationServiceClient;
 import org.example.task.client.SprintServiceClient;
-import org.example.task.client.UserDto;
 import org.example.task.client.UserServiceClient;
 import org.example.task.dto.TaskDto;
 import org.example.task.dto.TaskHistoryDto;
 import org.example.task.entity.Task;
 import org.example.task.entity.TaskHistory;
 import org.example.task.entity.TaskStatus;
+import org.example.task.mapper.TaskHistoryMapper;
+import org.example.task.mapper.TaskMapper;
 import org.example.task.repository.TaskHistoryRepository;
 import org.example.task.repository.TaskRepository;
 import org.springframework.stereotype.Service;
@@ -26,48 +28,61 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TaskService {
+public class TaskService implements ITaskService {
     private final TaskRepository taskRepository;
     private final TaskHistoryRepository taskHistoryRepository;
     private final UserServiceClient userServiceClient;
     private final SprintServiceClient sprintServiceClient;
     private final NotificationServiceClient notificationServiceClient;
 
+    @Override
     @Transactional(readOnly = true)
     public List<TaskDto> getAllTasks() {
         return taskRepository.findAll().stream()
-                .map(this::convertToDto)
+                .map(this::enrichWithUserNames)
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public TaskDto getTaskById(Long id) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
-        return convertToDto(task);
+        return enrichWithUserNames(task);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Task getTaskEntityById(Long id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<TaskDto> getTasksBySprintId(Long sprintId) {
         return taskRepository.findBySprintId(sprintId).stream()
-                .map(this::convertToDto)
+                .map(this::enrichWithUserNames)
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<TaskDto> getTasksByStatus(TaskStatus status) {
         return taskRepository.findByStatus(status).stream()
-                .map(this::convertToDto)
+                .map(this::enrichWithUserNames)
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<TaskDto> getTasksByAssignedTo(Long userId) {
         return taskRepository.findByAssignedTo(userId).stream()
-                .map(this::convertToDto)
+                .map(this::enrichWithUserNames)
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional
     public TaskDto createTask(TaskDto taskDto) {
         Task task = new Task();
@@ -104,9 +119,10 @@ public class TaskService {
         // Recalculate sprint status
         recalculateSprintStatus(savedTask.getSprintId());
         
-        return convertToDto(savedTask);
+        return enrichWithUserNames(savedTask);
     }
 
+    @Override
     @Transactional
     public TaskDto updateTask(Long id, TaskDto taskDto) {
         Task task = taskRepository.findById(id)
@@ -118,9 +134,10 @@ public class TaskService {
         task.setApproverId(taskDto.getApproverId());
 
         Task updatedTask = taskRepository.save(task);
-        return convertToDto(updatedTask);
+        return enrichWithUserNames(updatedTask);
     }
 
+    @Override
     @Transactional
     public TaskDto submitForReview(Long id, Long userId, String comment) {
         Task task = taskRepository.findById(id)
@@ -155,9 +172,10 @@ public class TaskService {
         // Recalculate sprint status
         recalculateSprintStatus(task.getSprintId());
         
-        return convertToDto(updatedTask);
+        return enrichWithUserNames(updatedTask);
     }
 
+    @Override
     @Transactional
     public TaskDto approveTask(Long id, Long approverId, String comment) {
         Task task = taskRepository.findById(id)
@@ -165,7 +183,7 @@ public class TaskService {
 
         // Check approver role
         try {
-            UserDto approver = userServiceClient.getUserById(approverId);
+            UserResponse approver = userServiceClient.getUserById(approverId);
             if (!"APPROVER".equals(approver.getRole()) && 
                 !"TEAM_LEAD".equals(approver.getRole()) && 
                 !"MANAGER".equals(approver.getRole())) {
@@ -212,9 +230,10 @@ public class TaskService {
         // Recalculate sprint status
         recalculateSprintStatus(task.getSprintId());
 
-        return convertToDto(updatedTask);
+        return enrichWithUserNames(updatedTask);
     }
 
+    @Override
     @Transactional
     public TaskDto rejectTask(Long id, Long approverId, String comment) {
         Task task = taskRepository.findById(id)
@@ -222,7 +241,7 @@ public class TaskService {
 
         // Check approver role
         try {
-            UserDto approver = userServiceClient.getUserById(approverId);
+            UserResponse approver = userServiceClient.getUserById(approverId);
             if (!"APPROVER".equals(approver.getRole()) && 
                 !"TEAM_LEAD".equals(approver.getRole()) && 
                 !"MANAGER".equals(approver.getRole())) {
@@ -269,9 +288,10 @@ public class TaskService {
         // Recalculate sprint status
         recalculateSprintStatus(task.getSprintId());
         
-        return convertToDto(updatedTask);
+        return enrichWithUserNames(updatedTask);
     }
 
+    @Override
     @Transactional
     public void deleteTask(Long id) {
         Task task = taskRepository.findById(id)
@@ -304,7 +324,7 @@ public class TaskService {
     @CircuitBreaker(name = "notificationService", fallbackMethod = "sendNotificationFallback")
     @Retry(name = "notificationService")
     private void sendNotification(Long userId, String message, String type, Long relatedEntityId) {
-        NotificationDto notification = new NotificationDto();
+        NotificationRequest notification = new NotificationRequest();
         notification.setUserId(userId);
         notification.setMessage(message);
         notification.setType(type);
@@ -320,23 +340,13 @@ public class TaskService {
         // TODO: Save to pending_notifications table for later retry
     }
 
-    private TaskDto convertToDto(Task task) {
-        TaskDto dto = new TaskDto();
-        dto.setId(task.getId());
-        dto.setTitle(task.getTitle());
-        dto.setDescription(task.getDescription());
-        dto.setSprintId(task.getSprintId());
-        dto.setStatus(task.getStatus());
-        dto.setAssignedTo(task.getAssignedTo());
-        dto.setApproverId(task.getApproverId());
-        dto.setCreatedBy(task.getCreatedBy());
-        dto.setCreatedAt(task.getCreatedAt());
-        dto.setUpdatedAt(task.getUpdatedAt());
+    private TaskDto enrichWithUserNames(Task task) {
+        TaskDto dto = TaskMapper.toDto(task);
 
         // Fetch user names
         if (task.getAssignedTo() != null) {
             try {
-                UserDto user = userServiceClient.getUserById(task.getAssignedTo());
+                UserResponse user = userServiceClient.getUserById(task.getAssignedTo());
                 dto.setAssignedToName(user.getName());
             } catch (Exception e) {
                 log.warn("Could not fetch user name for user id {}: {}", task.getAssignedTo(), e.getMessage());
@@ -345,7 +355,7 @@ public class TaskService {
 
         if (task.getApproverId() != null) {
             try {
-                UserDto user = userServiceClient.getUserById(task.getApproverId());
+                UserResponse user = userServiceClient.getUserById(task.getApproverId());
                 dto.setApproverName(user.getName());
             } catch (Exception e) {
                 log.warn("Could not fetch approver name for user id {}: {}", task.getApproverId(), e.getMessage());
@@ -354,7 +364,7 @@ public class TaskService {
 
         if (task.getCreatedBy() != null) {
             try {
-                UserDto user = userServiceClient.getUserById(task.getCreatedBy());
+                UserResponse user = userServiceClient.getUserById(task.getCreatedBy());
                 dto.setCreatedByName(user.getName());
             } catch (Exception e) {
                 log.warn("Could not fetch creator name for user id {}: {}", task.getCreatedBy(), e.getMessage());
@@ -375,7 +385,7 @@ public class TaskService {
         // Fetch user name
         if (changedBy != null) {
             try {
-                UserDto user = userServiceClient.getUserById(changedBy);
+                UserResponse user = userServiceClient.getUserById(changedBy);
                 history.setChangedByName(user.getName());
             } catch (Exception e) {
                 log.warn("Could not fetch user name for history: {}", e.getMessage());
@@ -386,23 +396,11 @@ public class TaskService {
         log.info("Task history saved: {} -> {} by user {}", previousStatus, newStatus, changedBy);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<TaskHistoryDto> getTaskHistory(Long taskId) {
         return taskHistoryRepository.findByTaskIdOrderByChangedAtDesc(taskId).stream()
-                .map(this::convertHistoryToDto)
+                .map(TaskHistoryMapper::toDto)
                 .collect(Collectors.toList());
-    }
-
-    private TaskHistoryDto convertHistoryToDto(TaskHistory history) {
-        TaskHistoryDto dto = new TaskHistoryDto();
-        dto.setId(history.getId());
-        dto.setTaskId(history.getTaskId());
-        dto.setPreviousStatus(history.getPreviousStatus());
-        dto.setNewStatus(history.getNewStatus());
-        dto.setComment(history.getComment());
-        dto.setChangedBy(history.getChangedBy());
-        dto.setChangedByName(history.getChangedByName());
-        dto.setChangedAt(history.getChangedAt());
-        return dto;
     }
 }

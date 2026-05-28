@@ -7,7 +7,7 @@ import org.example.auth.client.UserDto;
 import org.example.auth.dto.AuthResponse;
 import org.example.auth.dto.LoginRequest;
 import org.example.auth.dto.RegisterRequest;
-import org.example.auth.util.JwtUtil;
+import org.example.auth.security.JwtTokenProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class AuthService {
     private final TeamServiceClient teamServiceClient;
-    private final JwtUtil jwtUtil;
+    private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
 
     public AuthResponse login(LoginRequest request) {
@@ -30,8 +30,8 @@ public class AuthService {
             }
             
             // Generate tokens
-            String accessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
-            String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getEmail());
+            String accessToken = jwtTokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getEmail());
             
             log.info("User {} logged in successfully", user.getEmail());
             
@@ -63,8 +63,8 @@ public class AuthService {
             UserDto createdUser = teamServiceClient.createUser(userDto);
             
             // Generate tokens
-            String accessToken = jwtUtil.generateToken(createdUser.getId(), createdUser.getEmail(), createdUser.getRole());
-            String refreshToken = jwtUtil.generateRefreshToken(createdUser.getId(), createdUser.getEmail());
+            String accessToken = jwtTokenProvider.generateToken(createdUser.getId(), createdUser.getEmail(), createdUser.getRole());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(createdUser.getId(), createdUser.getEmail());
             
             log.info("User {} registered successfully", createdUser.getEmail());
             
@@ -85,20 +85,20 @@ public class AuthService {
     public AuthResponse refreshToken(String refreshToken) {
         try {
             // Validate refresh token
-            if (!jwtUtil.validateToken(refreshToken)) {
+            if (!jwtTokenProvider.validateToken(refreshToken)) {
                 throw new RuntimeException("Invalid refresh token");
             }
             
             // Extract user info
-            String email = jwtUtil.extractEmail(refreshToken);
-            Long userId = jwtUtil.extractUserId(refreshToken);
+            String email = jwtTokenProvider.extractEmail(refreshToken);
+            Long userId = jwtTokenProvider.extractUserId(refreshToken);
             
             // Get user to get current role
             UserDto user = teamServiceClient.getUserByEmail(email);
             
             // Generate new access token
-            String newAccessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
-            String newRefreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getEmail());
+            String newAccessToken = jwtTokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
+            String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), user.getEmail());
             
             log.info("Token refreshed for user {}", email);
             
@@ -117,6 +117,6 @@ public class AuthService {
     }
 
     public boolean validateToken(String token) {
-        return jwtUtil.validateToken(token);
+        return jwtTokenProvider.validateToken(token);
     }
 }

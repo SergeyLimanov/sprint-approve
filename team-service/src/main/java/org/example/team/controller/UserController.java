@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.team.dto.UserDto;
-import org.example.team.service.UserService;
+import org.example.team.service.IUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Users", description = "User management API")
 public class UserController {
-    private final UserService userService;
+    private final IUserService userService;
 
     @GetMapping
     @Operation(summary = "Get all users")

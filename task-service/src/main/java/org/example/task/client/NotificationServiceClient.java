@@ -1,5 +1,6 @@
 package org.example.task.client;
 
+import org.example.task.client.dto.NotificationRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -8,5 +9,5 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface NotificationServiceClient {
     
     @PostMapping("/api/notifications")
-    NotificationDto createNotification(@RequestBody NotificationDto dto);
+    void createNotification(@RequestBody NotificationRequest request);
 }

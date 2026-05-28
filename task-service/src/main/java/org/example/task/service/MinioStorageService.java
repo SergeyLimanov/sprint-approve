@@ -4,7 +4,7 @@ import io.minio.*;
 import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.task.config.MinioConfig;
+import org.example.task.config.MinioProperties;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class MinioStorageService {
     private final MinioClient minioClient;
-    private final MinioConfig minioConfig;
+    private final MinioProperties minioProperties;
 
     @PostConstruct
     public void init() {
@@ -29,7 +29,7 @@ public class MinioStorageService {
             // Проверяем существование bucket
             boolean found = minioClient.bucketExists(
                 BucketExistsArgs.builder()
-                    .bucket(minioConfig.getBucket())
+                    .bucket(minioProperties.getBucket())
                     .build()
             );
             
@@ -37,12 +37,12 @@ public class MinioStorageService {
                 // Создаём bucket если не существует
                 minioClient.makeBucket(
                     MakeBucketArgs.builder()
-                        .bucket(minioConfig.getBucket())
+                        .bucket(minioProperties.getBucket())
                         .build()
                 );
-                log.info("MinIO bucket created: {}", minioConfig.getBucket());
+                log.info("MinIO bucket created: {}", minioProperties.getBucket());
             } else {
-                log.info("MinIO bucket already exists: {}", minioConfig.getBucket());
+                log.info("MinIO bucket already exists: {}", minioProperties.getBucket());
             }
         } catch (Exception e) {
             throw new RuntimeException("Could not initialize MinIO bucket", e);
@@ -74,7 +74,7 @@ public class MinioStorageService {
             // Загружаем файл в MinIO
             minioClient.putObject(
                 PutObjectArgs.builder()
-                    .bucket(minioConfig.getBucket())
+                    .bucket(minioProperties.getBucket())
                     .object(fileName)
                     .stream(file.getInputStream(), file.getSize(), -1)
                     .contentType(file.getContentType())
@@ -100,7 +100,7 @@ public class MinioStorageService {
             String url = minioClient.getPresignedObjectUrl(
                 GetPresignedObjectUrlArgs.builder()
                     .method(Method.GET)
-                    .bucket(minioConfig.getBucket())
+                    .bucket(minioProperties.getBucket())
                     .object(fileName)
                     .expiry(expiryMinutes, TimeUnit.MINUTES)
                     .build()
@@ -132,7 +132,7 @@ public class MinioStorageService {
             return minioClient.getPresignedObjectUrl(
                 GetPresignedObjectUrlArgs.builder()
                     .method(Method.PUT)
-                    .bucket(minioConfig.getBucket())
+                    .bucket(minioProperties.getBucket())
                     .object(fileName)
                     .expiry(expiryMinutes, TimeUnit.MINUTES)
                     .build()
@@ -149,7 +149,7 @@ public class MinioStorageService {
         try {
             InputStream stream = minioClient.getObject(
                 GetObjectArgs.builder()
-                    .bucket(minioConfig.getBucket())
+                    .bucket(minioProperties.getBucket())
                     .object(fileName)
                     .build()
             );
@@ -168,7 +168,7 @@ public class MinioStorageService {
         try {
             minioClient.removeObject(
                 RemoveObjectArgs.builder()
-                    .bucket(minioConfig.getBucket())
+                    .bucket(minioProperties.getBucket())
                     .object(fileName)
                     .build()
             );
@@ -183,8 +183,8 @@ public class MinioStorageService {
      */
     public String getFileUrl(String fileName) {
         return String.format("%s/%s/%s", 
-            minioConfig.getEndpoint(), 
-            minioConfig.getBucket(), 
+            minioProperties.getEndpoint(), 
+            minioProperties.getBucket(), 
             fileName);
     }
 }

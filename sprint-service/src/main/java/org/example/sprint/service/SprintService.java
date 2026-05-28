@@ -12,6 +12,7 @@ import org.example.sprint.client.UserDto;
 import org.example.sprint.dto.SprintDto;
 import org.example.sprint.entity.Sprint;
 import org.example.sprint.entity.SprintStatus;
+import org.example.sprint.mapper.SprintMapper;
 import org.example.sprint.repository.SprintRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,39 +24,44 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SprintService {
+public class SprintService implements ISprintService {
     private final SprintRepository sprintRepository;
     private final TeamServiceClient teamServiceClient;
     private final TaskServiceClient taskServiceClient;
 
+    @Override
     @Transactional(readOnly = true)
     public List<SprintDto> getAllSprints() {
         return sprintRepository.findAll().stream()
-                .map(this::convertToDto)
+                .map(this::enrichWithNames)
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public SprintDto getSprintById(Long id) {
         Sprint sprint = sprintRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sprint not found with id: " + id));
-        return convertToDto(sprint);
+        return enrichWithNames(sprint);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<SprintDto> getSprintsByTeamId(Long teamId) {
         return sprintRepository.findByTeamId(teamId).stream()
-                .map(this::convertToDto)
+                .map(this::enrichWithNames)
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<SprintDto> getSprintsByStatus(SprintStatus status) {
         return sprintRepository.findByStatus(status).stream()
-                .map(this::convertToDto)
+                .map(this::enrichWithNames)
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional
     public SprintDto createSprint(SprintDto sprintDto) {
         Sprint sprint = new Sprint();
@@ -69,9 +75,10 @@ public class SprintService {
         sprint.setCreatedBy(sprintDto.getCreatedBy());
 
         Sprint savedSprint = sprintRepository.save(sprint);
-        return convertToDto(savedSprint);
+        return enrichWithNames(savedSprint);
     }
 
+    @Override
     @Transactional
     public SprintDto updateSprint(Long id, SprintDto sprintDto) {
         Sprint sprint = sprintRepository.findById(id)
@@ -83,9 +90,10 @@ public class SprintService {
         sprint.setEndDate(sprintDto.getEndDate());
 
         Sprint updatedSprint = sprintRepository.save(sprint);
-        return convertToDto(updatedSprint);
+        return enrichWithNames(updatedSprint);
     }
 
+    @Override
     @Transactional
     public SprintDto updateSprintStatus(Long id, SprintStatus status) {
         Sprint sprint = sprintRepository.findById(id)
@@ -93,9 +101,10 @@ public class SprintService {
 
         sprint.setStatus(status);
         Sprint updatedSprint = sprintRepository.save(sprint);
-        return convertToDto(updatedSprint);
+        return enrichWithNames(updatedSprint);
     }
 
+    @Override
     @Transactional
     public SprintDto submitForReview(Long id) {
         Sprint sprint = sprintRepository.findById(id)
@@ -107,9 +116,10 @@ public class SprintService {
 
         sprint.setStatus(SprintStatus.ON_REVIEW);
         Sprint updatedSprint = sprintRepository.save(sprint);
-        return convertToDto(updatedSprint);
+        return enrichWithNames(updatedSprint);
     }
 
+    @Override
     @Transactional
     public SprintDto approveSprint(Long id, Long approverId) {
         Sprint sprint = sprintRepository.findById(id)
@@ -145,9 +155,10 @@ public class SprintService {
 
         sprint.setStatus(SprintStatus.APPROVED);
         Sprint updatedSprint = sprintRepository.save(sprint);
-        return convertToDto(updatedSprint);
+        return enrichWithNames(updatedSprint);
     }
 
+    @Override
     @Transactional
     public SprintDto rejectSprint(Long id, Long approverId) {
         Sprint sprint = sprintRepository.findById(id)
@@ -170,9 +181,10 @@ public class SprintService {
 
         sprint.setStatus(SprintStatus.REJECTED);
         Sprint updatedSprint = sprintRepository.save(sprint);
-        return convertToDto(updatedSprint);
+        return enrichWithNames(updatedSprint);
     }
 
+    @Override
     @Transactional
     public void deleteSprint(Long id) {
         if (!sprintRepository.existsById(id)) {
@@ -181,6 +193,7 @@ public class SprintService {
         sprintRepository.deleteById(id);
     }
 
+    @Override
     @Transactional
     public SprintDto recalculateSprintStatus(Long id) {
         Sprint sprint = sprintRepository.findById(id)
@@ -233,7 +246,7 @@ public class SprintService {
             }
         
         Sprint updatedSprint = sprintRepository.save(sprint);
-        return convertToDto(updatedSprint);
+        return enrichWithNames(updatedSprint);
     }
     
     @CircuitBreaker(name = "taskService", fallbackMethod = "getTasksBySprintIdFallback")
@@ -277,19 +290,8 @@ public class SprintService {
         return fallback;
     }
 
-    private SprintDto convertToDto(Sprint sprint) {
-        SprintDto dto = new SprintDto();
-        dto.setId(sprint.getId());
-        dto.setName(sprint.getName());
-        dto.setDescription(sprint.getDescription());
-        dto.setTeamId(sprint.getTeamId());
-        dto.setType(sprint.getType());
-        dto.setStatus(sprint.getStatus());
-        dto.setStartDate(sprint.getStartDate());
-        dto.setEndDate(sprint.getEndDate());
-        dto.setCreatedBy(sprint.getCreatedBy());
-        dto.setCreatedAt(sprint.getCreatedAt());
-        dto.setUpdatedAt(sprint.getUpdatedAt());
+    private SprintDto enrichWithNames(Sprint sprint) {
+        SprintDto dto = SprintMapper.toDto(sprint);
 
         // Fetch team name with resilience
         TeamDto team = getTeamByIdWithResilience(sprint.getTeamId());

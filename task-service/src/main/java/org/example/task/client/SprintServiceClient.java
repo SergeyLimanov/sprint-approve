@@ -1,5 +1,6 @@
 package org.example.task.client;
 
+import org.example.task.client.dto.SprintResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -9,11 +10,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface SprintServiceClient {
     
     @GetMapping("/api/sprints/{id}")
-    SprintDto getSprintById(@PathVariable Long id);
+    SprintResponse getSprintById(@PathVariable Long id);
     
     @PatchMapping("/api/sprints/{id}/approve")
-    SprintDto approveSprint(@PathVariable Long id);
+    SprintResponse approveSprint(@PathVariable Long id);
     
     @PatchMapping("/api/sprints/{id}/recalculate-status")
-    SprintDto recalculateSprintStatus(@PathVariable Long id);
+    SprintResponse recalculateSprintStatus(@PathVariable Long id);
 }

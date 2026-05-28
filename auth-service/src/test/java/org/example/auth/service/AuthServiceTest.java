@@ -5,7 +5,7 @@ import org.example.auth.client.UserDto;
 import org.example.auth.dto.AuthResponse;
 import org.example.auth.dto.LoginRequest;
 import org.example.auth.dto.RegisterRequest;
-import org.example.auth.util.JwtUtil;
+import org.example.auth.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +25,7 @@ class AuthServiceTest {
     private TeamServiceClient teamServiceClient;
 
     @Mock
-    private JwtUtil jwtUtil;
+    private JwtTokenProvider jwtTokenProvider;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -64,9 +64,9 @@ class AuthServiceTest {
         // Given
         when(teamServiceClient.getUserByEmail(loginRequest.getEmail())).thenReturn(testUser);
         when(passwordEncoder.matches(loginRequest.getPassword(), testUser.getPassword())).thenReturn(true);
-        when(jwtUtil.generateToken(testUser.getId(), testUser.getEmail(), testUser.getRole()))
+        when(jwtTokenProvider.generateToken(testUser.getId(), testUser.getEmail(), testUser.getRole()))
                 .thenReturn("access-token");
-        when(jwtUtil.generateRefreshToken(testUser.getId(), testUser.getEmail()))
+        when(jwtTokenProvider.generateRefreshToken(testUser.getId(), testUser.getEmail()))
                 .thenReturn("refresh-token");
 
         // When
@@ -83,8 +83,8 @@ class AuthServiceTest {
 
         verify(teamServiceClient).getUserByEmail(loginRequest.getEmail());
         verify(passwordEncoder).matches(loginRequest.getPassword(), testUser.getPassword());
-        verify(jwtUtil).generateToken(testUser.getId(), testUser.getEmail(), testUser.getRole());
-        verify(jwtUtil).generateRefreshToken(testUser.getId(), testUser.getEmail());
+        verify(jwtTokenProvider).generateToken(testUser.getId(), testUser.getEmail(), testUser.getRole());
+        verify(jwtTokenProvider).generateRefreshToken(testUser.getId(), testUser.getEmail());
     }
 
     @Test
@@ -101,7 +101,7 @@ class AuthServiceTest {
         assertEquals("Invalid email or password", exception.getMessage());
         verify(teamServiceClient).getUserByEmail(loginRequest.getEmail());
         verify(passwordEncoder).matches(loginRequest.getPassword(), testUser.getPassword());
-        verify(jwtUtil, never()).generateToken(anyLong(), anyString(), anyString());
+        verify(jwtTokenProvider, never()).generateToken(anyLong(), anyString(), anyString());
     }
 
     @Test
@@ -117,7 +117,7 @@ class AuthServiceTest {
 
         assertEquals("Invalid email or password", exception.getMessage());
         verify(teamServiceClient).getUserByEmail(loginRequest.getEmail());
-        verify(jwtUtil, never()).generateToken(anyLong(), anyString(), anyString());
+        verify(jwtTokenProvider, never()).generateToken(anyLong(), anyString(), anyString());
     }
 
     @Test
@@ -133,9 +133,9 @@ class AuthServiceTest {
 
         when(passwordEncoder.encode(registerRequest.getPassword())).thenReturn("$2a$10$encodedPassword");
         when(teamServiceClient.createUser(any(UserDto.class))).thenReturn(newUser);
-        when(jwtUtil.generateToken(newUser.getId(), newUser.getEmail(), newUser.getRole()))
+        when(jwtTokenProvider.generateToken(newUser.getId(), newUser.getEmail(), newUser.getRole()))
                 .thenReturn("access-token");
-        when(jwtUtil.generateRefreshToken(newUser.getId(), newUser.getEmail()))
+        when(jwtTokenProvider.generateRefreshToken(newUser.getId(), newUser.getEmail()))
                 .thenReturn("refresh-token");
 
         // When
@@ -152,35 +152,35 @@ class AuthServiceTest {
 
         verify(passwordEncoder).encode(registerRequest.getPassword());
         verify(teamServiceClient).createUser(any(UserDto.class));
-        verify(jwtUtil).generateToken(newUser.getId(), newUser.getEmail(), newUser.getRole());
-        verify(jwtUtil).generateRefreshToken(newUser.getId(), newUser.getEmail());
+        verify(jwtTokenProvider).generateToken(newUser.getId(), newUser.getEmail(), newUser.getRole());
+        verify(jwtTokenProvider).generateRefreshToken(newUser.getId(), newUser.getEmail());
     }
 
     @Test
     void testValidateTokenSuccess() {
         // Given
         String token = "valid-token";
-        when(jwtUtil.validateToken(token)).thenReturn(true);
+        when(jwtTokenProvider.validateToken(token)).thenReturn(true);
 
         // When
         Boolean isValid = authService.validateToken(token);
 
         // Then
         assertTrue(isValid);
-        verify(jwtUtil).validateToken(token);
+        verify(jwtTokenProvider).validateToken(token);
     }
 
     @Test
     void testValidateTokenFailure() {
         // Given
         String token = "invalid-token";
-        when(jwtUtil.validateToken(token)).thenReturn(false);
+        when(jwtTokenProvider.validateToken(token)).thenReturn(false);
 
         // When
         Boolean isValid = authService.validateToken(token);
 
         // Then
         assertFalse(isValid);
-        verify(jwtUtil).validateToken(token);
+        verify(jwtTokenProvider).validateToken(token);
     }
 }

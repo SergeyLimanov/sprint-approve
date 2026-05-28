@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.team.dto.TeamDto;
+import org.example.team.service.ITeamService;
 import org.example.team.service.TeamService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Teams", description = "Team management API")
 public class TeamController {
-    private final TeamService teamService;
+    private final ITeamService teamService;
 
     @GetMapping
     @Operation(summary = "Get all teams")

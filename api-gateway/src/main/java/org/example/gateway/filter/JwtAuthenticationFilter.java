@@ -1,7 +1,7 @@
 package org.example.gateway.filter;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.gateway.util.JwtUtil;
+import org.example.gateway.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -17,7 +17,7 @@ import reactor.core.publisher.Mono;
 public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config> {
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private JwtTokenProvider jwtTokenProvider;
 
     public JwtAuthenticationFilter() {
         super(Config.class);
@@ -44,16 +44,16 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
             String token = authHeader.substring(7);
 
             // Validate token
-            if (!jwtUtil.validateToken(token)) {
+            if (!jwtTokenProvider.validateToken(token)) {
                 log.warn("Invalid JWT token");
                 return onError(exchange, "Invalid or expired token", HttpStatus.UNAUTHORIZED);
             }
 
             // Extract user info and add to headers
             try {
-                Long userId = jwtUtil.extractUserId(token);
-                String email = jwtUtil.extractEmail(token);
-                String role = jwtUtil.extractRole(token);
+                Long userId = jwtTokenProvider.extractUserId(token);
+                String email = jwtTokenProvider.extractEmail(token);
+                String role = jwtTokenProvider.extractRole(token);
 
                 // Add user info to request headers for downstream services
                 ServerHttpRequest modifiedRequest = request.mutate()
