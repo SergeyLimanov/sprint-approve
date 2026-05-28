@@ -1,9 +1,9 @@
 package org.example.task.service;
 
-import org.example.task.client.NotificationDto;
+import org.example.task.client.dto.NotificationRequest;
+import org.example.task.client.dto.UserResponse;
 import org.example.task.client.NotificationServiceClient;
 import org.example.task.client.SprintServiceClient;
-import org.example.task.client.UserDto;
 import org.example.task.client.UserServiceClient;
 import org.example.task.dto.TaskDto;
 import org.example.task.entity.Task;
@@ -49,7 +49,7 @@ class TaskServiceTest {
 
     private Task testTask;
     private TaskDto testTaskDto;
-    private UserDto testUser;
+    private UserResponse testUser;
 
     @BeforeEach
     void setUp() {
@@ -72,7 +72,7 @@ class TaskServiceTest {
         testTaskDto.setAssignedTo(2L);
         testTaskDto.setCreatedBy(1L);
 
-        testUser = new UserDto();
+        testUser = new UserResponse();
         testUser.setId(1L);
         testUser.setName("Test User");
         testUser.setEmail("test@example.com");
@@ -174,10 +174,9 @@ class TaskServiceTest {
     @Test
     void testCreateTask() {
         // Given
-        NotificationDto notificationDto = new NotificationDto();
         when(taskRepository.save(any(Task.class))).thenReturn(testTask);
         when(userServiceClient.getUserById(anyLong())).thenReturn(testUser);
-        when(notificationServiceClient.createNotification(any(NotificationDto.class))).thenReturn(notificationDto);
+        doNothing().when(notificationServiceClient).createNotification(any(NotificationRequest.class));
 
         // When
         TaskDto result = taskService.createTask(testTaskDto);
