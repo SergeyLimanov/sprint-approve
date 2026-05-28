@@ -115,8 +115,9 @@ class NotificationServiceTest {
     void testCreateNotificationWithEmail() {
         // Given
         when(notificationRepository.save(any(Notification.class))).thenReturn(testNotification);
-        when(userServiceClient.getUserById(1L)).thenReturn(testUser);
-        doNothing().when(emailServiceClient).sendNotificationEmail(any(EmailNotificationRequest.class));
+        // Email sending is currently disabled
+        // when(userServiceClient.getUserById(1L)).thenReturn(testUser);
+        // doNothing().when(emailServiceClient).sendNotificationEmail(any(EmailNotificationRequest.class));
 
         // When
         NotificationDto result = notificationService.createNotification(testNotificationDto);
@@ -126,8 +127,9 @@ class NotificationServiceTest {
         assertEquals(testNotificationDto.getMessage(), result.getMessage());
         assertEquals(testNotificationDto.getType(), result.getType());
         verify(notificationRepository).save(any(Notification.class));
-        verify(userServiceClient).getUserById(1L);
-        verify(emailServiceClient).sendNotificationEmail(any(EmailNotificationRequest.class));
+        // Email sending is currently disabled
+        // verify(userServiceClient).getUserById(1L);
+        // verify(emailServiceClient).sendNotificationEmail(any(EmailNotificationRequest.class));
     }
 
     @Test
@@ -139,7 +141,8 @@ class NotificationServiceTest {
         userWithoutEmail.setEmail(null);
 
         when(notificationRepository.save(any(Notification.class))).thenReturn(testNotification);
-        when(userServiceClient.getUserById(1L)).thenReturn(userWithoutEmail);
+        // Email sending is currently disabled
+        // when(userServiceClient.getUserById(1L)).thenReturn(userWithoutEmail);
 
         // When
         NotificationDto result = notificationService.createNotification(testNotificationDto);
@@ -147,7 +150,8 @@ class NotificationServiceTest {
         // Then
         assertNotNull(result);
         verify(notificationRepository).save(any(Notification.class));
-        verify(userServiceClient).getUserById(1L);
+        // Email sending is currently disabled
+        // verify(userServiceClient).getUserById(1L);
         verify(emailServiceClient, never()).sendNotificationEmail(any(EmailNotificationRequest.class));
     }
 
