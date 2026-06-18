@@ -16,6 +16,11 @@ import java.util.stream.Collectors;
 public class TeamService implements ITeamService {
     private final TeamRepository teamRepository;
 
+    /**
+     * Получить список всех команд
+     * 
+     * @return список всех команд в системе
+     */
     @Override
     @Transactional(readOnly = true)
     public List<TeamDto> getAllTeams() {
@@ -24,6 +29,13 @@ public class TeamService implements ITeamService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Получить команду по ID
+     * 
+     * @param id - ID команды
+     * @return команда (DTO)
+     * @throws RuntimeException если команда не найдена
+     */
     @Override
     @Transactional(readOnly = true)
     public TeamDto getTeamById(Long id) {
@@ -32,6 +44,15 @@ public class TeamService implements ITeamService {
         return TeamMapper.toDto(team);
     }
 
+    /**
+     * Получить команду как Entity (для внутреннего использования)
+     * 
+     * Используется UserService для установки связи user.setTeam(team)
+     * 
+     * @param id - ID команды
+     * @return команда (Entity)
+     * @throws RuntimeException если команда не найдена
+     */
     @Override
     @Transactional(readOnly = true)
     public Team getTeamEntityById(Long id) {
@@ -39,6 +60,16 @@ public class TeamService implements ITeamService {
                 .orElseThrow(() -> new RuntimeException("Team not found with id: " + id));
     }
 
+    /**
+     * Создать новую команду
+     * 
+     * ПРОВЕРКИ:
+     * - Название команды должно быть уникальным
+     * 
+     * @param teamDto - данные новой команды (name, description)
+     * @return созданная команда
+     * @throws RuntimeException если название уже занято
+     */
     @Override
     @Transactional
     public TeamDto createTeam(TeamDto teamDto) {
@@ -54,6 +85,17 @@ public class TeamService implements ITeamService {
         return TeamMapper.toDto(savedTeam);
     }
 
+    /**
+     * Обновить данные команды
+     * 
+     * ПРОВЕРКИ:
+     * - Если меняется название, оно должно быть уникальным
+     * 
+     * @param id - ID команды для обновления
+     * @param teamDto - новые данные команды
+     * @return обновленная команда
+     * @throws RuntimeException если команда не найдена или название занято
+     */
     @Override
     @Transactional
     public TeamDto updateTeam(Long id, TeamDto teamDto) {
@@ -71,6 +113,14 @@ public class TeamService implements ITeamService {
         return TeamMapper.toDto(updatedTeam);
     }
 
+    /**
+     * Удалить команду
+     * 
+     * ВНИМАНИЕ: Удаление команды может нарушить связи с пользователями и спринтами
+     * 
+     * @param id - ID команды для удаления
+     * @throws RuntimeException если команда не найдена
+     */
     @Override
     @Transactional
     public void deleteTeam(Long id) {

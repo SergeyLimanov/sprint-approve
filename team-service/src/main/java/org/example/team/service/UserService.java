@@ -18,6 +18,11 @@ public class UserService implements IUserService {
     private final UserRepository userRepository;
     private final ITeamService teamService;
 
+    /**
+     * Получить список всех пользователей в системе
+     * 
+     * @return список всех пользователей (без паролей)
+     */
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
@@ -26,6 +31,13 @@ public class UserService implements IUserService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Получить пользователя по ID
+     * 
+     * @param id - ID пользователя
+     * @return пользователь (без пароля)
+     * @throws RuntimeException если пользователь не найден
+     */
     @Override
     @Transactional(readOnly = true)
     public UserDto getUserById(Long id) {
@@ -34,6 +46,12 @@ public class UserService implements IUserService {
         return UserMapper.toDto(user);
     }
 
+    /**
+     * Получить всех пользователей команды
+     * 
+     * @param teamId - ID команды
+     * @return список пользователей команды (без паролей)
+     */
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> getUsersByTeamId(Long teamId) {
@@ -42,6 +60,15 @@ public class UserService implements IUserService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Получить пользователя по email (используется Auth Service для логина)
+     * 
+     * ВАЖНО: Возвращает пользователя С ПАРОЛЕМ для проверки при логине
+     * 
+     * @param email - email пользователя
+     * @return пользователь с паролем (BCrypt hash)
+     * @throws RuntimeException если пользователь не найден
+     */
     @Override
     @Transactional(readOnly = true)
     public UserDto getUserByEmail(String email) {
@@ -50,6 +77,17 @@ public class UserService implements IUserService {
         return UserMapper.toDtoWithPassword(user);
     }
 
+    /**
+     * Создать нового пользователя (вызывается из Auth Service при регистрации)
+     * 
+     * ПРОВЕРКИ:
+     * - Email должен быть уникальным
+     * - Пароль должен быть уже захеширован Auth Service (BCrypt)
+     * 
+     * @param userDto - данные нового пользователя (email, name, password, role, teamId)
+     * @return созданный пользователь (без пароля)
+     * @throws RuntimeException если email уже занят
+     */
     @Override
     @Transactional
     public UserDto createUser(UserDto userDto) {
@@ -79,6 +117,19 @@ public class UserService implements IUserService {
         return UserMapper.toDto(savedUser);
     }
 
+    /**
+     * Обновить данные пользователя
+     * 
+     * ПРОВЕРКИ:
+     * - Если меняется email, он должен быть уникальным
+     * - Можно изменить: email, name, role, teamId
+     * - Пароль НЕ обновляется этим методом (отдельный эндпоинт)
+     * 
+     * @param id - ID пользователя для обновления
+     * @param userDto - новые данные пользователя
+     * @return обновленный пользователь (без пароля)
+     * @throws RuntimeException если пользователь не найден или email занят
+     */
     @Override
     @Transactional
     public UserDto updateUser(Long id, UserDto userDto) {
@@ -104,6 +155,15 @@ public class UserService implements IUserService {
         return UserMapper.toDto(updatedUser);
     }
 
+    /**
+     * Удалить пользователя
+     * 
+     * ВНИМАНИЕ: Удаление пользователя может нарушить связи с задачами и спринтами
+     * В production лучше использовать soft delete (флаг isDeleted)
+     * 
+     * @param id - ID пользователя для удаления
+     * @throws RuntimeException если пользователь не найден
+     */
     @Override
     @Transactional
     public void deleteUser(Long id) {

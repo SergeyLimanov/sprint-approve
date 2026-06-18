@@ -1,30 +1,68 @@
+# ============================================
+# API GATEWAY - ЕДИНАЯ ТОЧКА ВХОДА
+# ============================================
+# Назначение: Маршрутизация запросов, проверка JWT, CORS
+# Функции:
+#   - Единый URL для клиента (http://localhost:8080)
+#   - Проверка JWT токенов (кроме /api/auth/**)
+#   - Маршрутизация к микросервисам через Eureka
+#   - Добавление заголовков X-User-Id, X-User-Email, X-User-Role
+#   - Балансировка нагрузки (lb:// = load balanced)
+# ============================================
+
 spring:
   application:
+    # Имя сервиса в Eureka реестре
     name: api-gateway
+  
   codec:
+    # Максимальный размер тела запроса в памяти (для загрузки файлов)
     max-in-memory-size: 100MB
+  
   cloud:
     gateway:
       discovery:
         locator:
+          # true - автоматическое создание маршрутов для всех сервисов из Eureka
           enabled: true
+          # true - имена сервисов в нижнем регистре (team-service вместо TEAM-SERVICE)
           lower-case-service-id: true
+      
       routes:
+        # ========================================
+        # AUTH SERVICE - Регистрация и логин
+        # ========================================
+        # БЕЗ проверки JWT (публичные эндпоинты)
         - id: auth-service
+          # lb:// = load balanced через Eureka
+          # Eureka найдет auth-service и вернет его URL
           uri: lb://auth-service
           predicates:
+            # Все запросы на /api/auth/** идут в auth-service
             - Path=/api/auth/**
           filters:
+            # Перезапись пути (оставляем как есть)
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+            # ⚠️ НЕТ JwtAuthenticationFilter - публичный доступ!
 
+        # ========================================
+        # TEAM SERVICE - Команды и пользователи
+        # ========================================
+        # С проверкой JWT
         - id: team-service
           uri: lb://team-service
           predicates:
+            # /api/teams/** и /api/users/** → team-service
             - Path=/api/teams/**, /api/users/**
           filters:
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
+            # ✅ JwtAuthenticationFilter - проверка токена!
+            # Добавляет заголовки: X-User-Id, X-User-Email, X-User-Role
             - JwtAuthenticationFilter
 
+        # ========================================
+        # SPRINT SERVICE - Управление спринтами
+        # ========================================
         - id: sprint-service
           uri: lb://sprint-service
           predicates:
@@ -33,14 +71,21 @@ spring:
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
             - JwtAuthenticationFilter
 
+        # ========================================
+        # TASK SERVICE - Задачи, файлы, комментарии
+        # ========================================
         - id: task-service
           uri: lb://task-service
           predicates:
+            # Несколько путей: задачи, артефакты, комментарии
             - Path=/api/tasks/**, /api/artifacts/**, /api/comments/**
           filters:
             - RewritePath=/api/(?<segment>.*), /api/$\{segment}
             - JwtAuthenticationFilter
 
+        # ========================================
+        # NOTIFICATION SERVICE - Push-уведомления
+        # ========================================
         - id: notification-service
           uri: lb://notification-service
           predicates:
@@ -50,21 +95,33 @@ spring:
             - JwtAuthenticationFilter
 
 server:
+  # Порт API Gateway - единая точка входа для клиента
   port: 8080
 
 eureka:
   client:
     service-url:
+      # URL Eureka Server для регистрации и получения списка сервисов
       defaultZone: http://localhost:8761/eureka/
+    
+    # true - получать список сервисов из Eureka (для маршрутизации)
     fetch-registry: true
+    
+    # true - зарегистрироваться в Eureka как api-gateway
     register-with-eureka: true
+  
   instance:
+    # false - использовать hostname вместо IP
     prefer-ip-address: false
     hostname: localhost
 
 jwt:
+  # Секретный ключ для проверки JWT подписи
+  # В production использовать переменную окружения JWT_SECRET
+  # Минимум 256 бит для HS256 алгоритма
   secret: ${JWT_SECRET:sprint-approve-secret-key-change-this-in-production-minimum-256-bits-required-for-hs256-algorithm}
 
 logging:
   level:
+    # DEBUG логи для отладки маршрутизации
     org.springframework.cloud.gateway: DEBUG

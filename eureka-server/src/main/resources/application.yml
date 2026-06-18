@@ -1,15 +1,40 @@
+# ============================================
+# EUREKA SERVER - SERVICE DISCOVERY
+# ============================================
+# Назначение: Центральный реестр всех микросервисов
+# Функции:
+#   - Автоматическая регистрация сервисов при запуске
+#   - Динамическое обнаружение сервисов (не нужно хардкодить IP)
+#   - Health check - проверка доступности сервисов
+#   - Dashboard для мониторинга: http://localhost:8761
+# ============================================
+
 spring:
   application:
+    # Имя сервиса в Eureka реестре
     name: eureka-server
 
 server:
+  # Порт, на котором работает Eureka Server
+  # Dashboard доступен по адресу: http://localhost:8761
   port: 8761
 
 eureka:
   client:
+    # false - сам Eureka Server не регистрируется в реестре
+    # (он сам является реестром, поэтому не нужно регистрироваться)
     register-with-eureka: false
+    
+    # false - не нужно получать список сервисов из реестра
+    # (Eureka Server сам хранит этот список)
     fetch-registry: false
+    
     service-url:
+      # URL, по которому другие сервисы будут регистрироваться
       defaultZone: http://localhost:8761/eureka/
+  
   server:
+    # false - отключить режим самосохранения
+    # В production должно быть true для защиты от сетевых сбоев
+    # В development false для быстрого удаления "мертвых" сервисов
     enable-self-preservation: false

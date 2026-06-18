@@ -1,35 +1,92 @@
+# ============================================
+# AUTH SERVICE - АУТЕНТИФИКАЦИЯ И АВТОРИЗАЦИЯ
+# ============================================
+# Назначение: Регистрация, логин, JWT токены
+# Функции:
+#   - Регистрация новых пользователей (BCrypt хеширование)
+#   - Логин (проверка email/password)
+#   - Генерация JWT токенов (access + refresh)
+#   - Обновление токенов (refresh → новый access)
+#   - Взаимодействие с Team Service через Feign
+# ============================================
+
 server:
+  # Порт Auth Service
   port: 8084
 
 spring:
   application:
+    # Имя сервиса в Eureka реестре
     name: auth-service
 
 eureka:
   client:
     service-url:
+      # URL Eureka Server для регистрации
       defaultZone: http://localhost:8761/eureka/
+    
+    # true - получать список сервисов из Eureka
+    # (нужно для Feign клиента к Team Service)
     fetch-registry: true
+    
+    # true - зарегистрироваться в Eureka
     register-with-eureka: true
+  
   instance:
+    # false - использовать hostname вместо IP
     prefer-ip-address: false
     hostname: localhost
 
+# ============================================
+# JWT КОНФИГУРАЦИЯ
+# ============================================
 jwt:
+  # Секретный ключ для подписи JWT токенов
+  # В production использовать переменную окружения JWT_SECRET
+  # Минимум 256 бит (32 символа) для HS256 алгоритма
   secret: ${JWT_SECRET:sprint-approve-secret-key-change-this-in-production-minimum-256-bits-required-for-hs256-algorithm}
-  expiration: 86400000  # 24 hours in milliseconds
-  refresh-expiration: 604800000  # 7 days in milliseconds
+  
+  # Срок действия access токена: 86400000 мс = 24 часа
+  # Access token используется для доступа к API
+  # Короткий срок для безопасности (если токен украден, он быстро истечет)
+  expiration: 86400000
+  
+  # Срок действия refresh токена: 604800000 мс = 7 дней
+  # Refresh token используется для получения нового access токена
+  # Длинный срок для удобства (пользователю не нужно логиниться каждый день)
+  refresh-expiration: 604800000
 
-# Feign client configuration
+# ============================================
+# FEIGN CLIENT - ВЗАИМОДЕЙСТВИЕ С TEAM SERVICE
+# ============================================
+# Auth Service вызывает Team Service для:
+# - Создания пользователя при регистрации
+# - Получения пользователя при логине
+# - Получения актуальной роли при refresh token
 feign:
   client:
     config:
       default:
-        connectTimeout: 10000  # 10 seconds
-        readTimeout: 10000     # 10 seconds
+        # Таймаут подключения: 10 секунд
+        # Если Team Service не отвечает за 10 сек → ошибка
+        connectTimeout: 10000
+        
+        # Таймаут чтения: 10 секунд
+        # Если Team Service не вернул ответ за 10 сек → ошибка
+        readTimeout: 10000
+        
+        # Уровень логирования Feign: full
+        # Логирует все запросы и ответы (полезно для отладки)
+        # Варианты: NONE, BASIC, HEADERS, FULL
         loggerLevel: full
 
+# ============================================
+# ЛОГИРОВАНИЕ
+# ============================================
 logging:
   level:
+    # DEBUG логи для Auth Service (все классы в пакете org.example.auth)
     org.example.auth: DEBUG
+    
+    # DEBUG логи для Feign клиентов (запросы к Team Service)
     org.example.auth.client: DEBUG
